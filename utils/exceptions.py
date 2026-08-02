@@ -43,3 +43,24 @@ class DatabaseError(MediAgentError):
 
 class ReportGenerationError(MediAgentError):
     """Raised when the final PDF report fails to build."""
+
+
+class AuthError(MediAgentError):
+    """Raised on login failure, expired/invalid token, or inactive account."""
+
+
+class AccessDeniedError(MediAgentError):
+    """Raised when an authenticated user's role/assignment doesn't grant
+    access to the requested patient's data (RBAC denial)."""
+
+
+class TranscriptionError(MediAgentError):
+    """Raised when speech-to-text fails (bad audio, missing ffmpeg/model)."""
+
+
+class SchedulerError(MediAgentError):
+    """Raised when a reminder schedule job can't be registered/removed."""
+
+
+class NotificationError(MediAgentError):
+    """Raised when a notification fails to be created or dispatched."""

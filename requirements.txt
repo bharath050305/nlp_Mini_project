@@ -1,6 +1,5 @@
 # Pinned to versions verified together in a clean install (see README for
 # the reasoning behind each choice).
-streamlit==1.60.0
 spacy==3.8.14
 scikit-learn==1.8.0
 PyMuPDF==1.28.0
@@ -10,3 +9,25 @@ pydantic-settings==2.14.2
 python-dotenv==1.2.2
 pandas==3.0.2
 numpy==2.4.4
+
+# -- Backend API (v3: React frontend talks to this, not Streamlit) --------
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+email-validator>=2.2
+
+# -- Postgres + migrations (v3) --------------------------------------------
+sqlalchemy>=2.0
+alembic>=1.13
+psycopg2-binary>=2.9
+
+# -- Auth (v3) ---------------------------------------------------------------
+# NOTE: passlib is unmaintained and incompatible with modern bcrypt
+# releases (bcrypt>=4.1 removed the __about__ attribute passlib probes for,
+# and changed 72-byte-password handling) — hashing is done with `bcrypt`
+# directly instead (see backend/security.py).
+python-jose[cryptography]>=3.3
+bcrypt>=4.0
+
+# -- Scheduler / notifications (v3) ------------------------------------------
+apscheduler>=3.10

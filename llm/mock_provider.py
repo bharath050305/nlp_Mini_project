@@ -64,6 +64,8 @@ class MockLLMProvider(LLMProvider):
             return self._summarize(sections)
         if "CONTEXT" in sections and "QUESTION" in sections:
             return self._answer(sections)
+        if "TRANSCRIPT" in sections and "DISEASES_MENTIONED" in sections:
+            return self._structure_soap(sections)
 
         # Generic fallback: no recognized markers, just echo a safe stub.
         logger.warning("MockLLMProvider received an unrecognized prompt shape; returning stub.")
@@ -139,6 +141,38 @@ class MockLLMProvider(LLMProvider):
                 "Try rephrasing, or ask about a value that appears in the document."
             )
         return best_sentence
+
+    def _structure_soap(self, s: dict[str, str]) -> str:
+        """Rule-based SOAP structuring: no real language understanding, so
+        this deliberately stays close to what was actually mentioned
+        (diseases/medicines/symptoms already extracted by NER) rather than
+        attempting to paraphrase the transcript — same "don't invent facts"
+        principle as `_summarize`."""
+        transcript = s.get("TRANSCRIPT", "").strip()
+        diseases = self._list(s.get("DISEASES_MENTIONED", ""))
+        medicines = self._list(s.get("MEDICINES_MENTIONED", ""))
+        symptoms = self._list(s.get("SYMPTOMS_MENTIONED", ""))
+
+        subjective = f"Patient reported: {self._join(symptoms)}." if symptoms else "Not discussed."
+        objective = (
+            f"Consultation transcript on file ({len(transcript)} characters); "
+            "no structured vitals were extracted from the transcript text."
+            if transcript
+            else "Not discussed."
+        )
+        assessment = f"Condition(s) discussed: {self._join(diseases)}." if diseases else "Not discussed."
+        plan = (
+            f"Medication(s) discussed: {self._join(medicines)}. Follow up as advised during the visit."
+            if medicines
+            else "Not discussed."
+        )
+
+        return (
+            f"SUBJECTIVE: {subjective}\n"
+            f"OBJECTIVE: {objective}\n"
+            f"ASSESSMENT: {assessment}\n"
+            f"PLAN: {plan}"
+        )
 
     @staticmethod
     def _list(raw: str) -> list[str]:

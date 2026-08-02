@@ -170,8 +170,16 @@ class Reminder(BaseModel):
     patient_id: int
     medicine_name: str
     dosage: str = ""
-    frequency: str = ""  # e.g. "morning, night"
+    frequency: str = ""  # legacy free-text, e.g. "morning, night" (conversational path)
     created_at: datetime | None = None
+    # -- structured scheduling (v3, optional/backward-compatible) --------------
+    schedule_type: str = "unscheduled"  # "daily" | "monthly" | "unscheduled"
+    quantity_total: int | None = None
+    quantity_remaining: int | None = None
+    quantity_per_dose: int = 1
+    low_stock_threshold: int = 5
+    refill_alert_sent: bool = False
+    active: bool = True
 
 
 # --------------------------------------------------------------------------
@@ -195,6 +203,21 @@ class TimelineEvent(BaseModel):
     medicines: list[str] = Field(default_factory=list)
     lab_values: list[str] = Field(default_factory=list)
     new_since_previous: list[str] = Field(default_factory=list)
+
+
+# --------------------------------------------------------------------------
+# Transcript-to-report agent (v3) — structures a consultation-audio
+# transcript into a SOAP note, the same way summarizer_agent structures
+# an uploaded PDF report. Kept here (not in backend/db_models.py) because
+# it's agent input/output shared across the pipeline, not a persistence
+# concern — the same "domain layer" reasoning as ReportSummary/QAResult.
+# --------------------------------------------------------------------------
+class SOAPNote(BaseModel):
+    subjective: str = ""
+    objective: str = ""
+    assessment: str = ""
+    plan: str = ""
+    confidence: str = "medium"  # low | medium | high
 
 
 # --------------------------------------------------------------------------

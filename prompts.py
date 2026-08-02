@@ -54,3 +54,33 @@ QA_SYSTEM_PROMPT = (
 def build_qa_prompt(context_chunks: list[str], question: str) -> str:
     context = "\n---\n".join(context_chunks)
     return f"CONTEXT:\n{context}\n\nQUESTION: {question}\n\nTASK: Answer the question using only the CONTEXT above."
+
+
+SOAP_SYSTEM_PROMPT = (
+    "You are a clinical scribe assistant. Structure the doctor-patient "
+    "consultation transcript below into a SOAP note (Subjective, Objective, "
+    "Assessment, Plan). Use only what was actually said in the transcript — "
+    "never invent findings, diagnoses, or medications not mentioned. Flag "
+    "this as a draft: it is reviewed and edited by the doctor before use."
+)
+
+
+def build_soap_prompt(
+    transcript_text: str,
+    diseases: list[str],
+    medicines: list[str],
+    symptoms: list[str],
+) -> str:
+    return (
+        f"TRANSCRIPT:\n{transcript_text}\n\n"
+        f"DISEASES_MENTIONED: {', '.join(diseases) or 'none detected'}\n"
+        f"MEDICINES_MENTIONED: {', '.join(medicines) or 'none detected'}\n"
+        f"SYMPTOMS_MENTIONED: {', '.join(symptoms) or 'none detected'}\n\n"
+        "TASK: Produce four sections from the transcript:\n"
+        "SUBJECTIVE: what the patient reported (symptoms, history, concerns) in their own words.\n"
+        "OBJECTIVE: what the doctor observed/measured/tested during the visit.\n"
+        "ASSESSMENT: the doctor's stated or clearly implied clinical assessment.\n"
+        "PLAN: the doctor's stated next steps (medication, follow-up, tests, referrals).\n"
+        "If a section has no clear content in the transcript, write 'Not discussed' "
+        "rather than inventing content."
+    )

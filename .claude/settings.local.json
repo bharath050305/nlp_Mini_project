@@ -2,7 +2,27 @@
   "permissions": {
     "allow": [
       "Bash(git init *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(python -c \"import config; import schemas; import prompts; import utils.exceptions; print\\('OK', config.settings.database_url, config.settings.stt_provider\\)\")",
+      "Bash(python -c \"import sys; print\\(sys.executable\\)\")",
+      "Bash(pip list *)",
+      "Bash(pip install *)",
+      "Bash(python -c ' *)",
+      "Bash(pip uninstall *)",
+      "Bash(alembic init *)",
+      "Bash(powershell -Command \"Get-Service -Name '*postgres*' -ErrorAction SilentlyContinue | Select-Object Name, Status, DisplayName\")",
+      "Bash(powershell -Command \"Get-ChildItem -Path 'C:\\\\Program Files\\\\PostgreSQL' -Recurse -Filter 'pg_hba.conf' -ErrorAction SilentlyContinue | Select-Object FullName\")",
+      "Bash(alembic revision *)",
+      "Bash(alembic upgrade *)",
+      "Bash(python -c \"import backend.schemas_api as s; print\\('OK', s.ReminderOut.model_fields.keys\\(\\)\\)\")",
+      "Bash(nohup python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000)",
+      "Bash(curl -s http://127.0.0.1:8000/api/health)",
+      "Read(//tmp/**)",
+      "Bash(pkill -f \"uvicorn backend.main:app\")",
+      "Bash(powershell -Command 'Get-Process python -ErrorAction SilentlyContinue | Where-Object {$_.CommandLine -like '\\\\''*uvicorn*'\\\\''} | Stop-Process -Force')",
+      "Bash(powershell -Command 'Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }')",
+      "Bash(curl -s -o /dev/null -w \"post-kill status: %{http_code}\\\\n\" http://127.0.0.1:8000/api/health --max-time 3)"
     ]
   }
 }

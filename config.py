@@ -10,6 +10,7 @@ variables / a local `.env` file. Nothing else in the codebase should read
 there is exactly one source of truth for configuration.
 """
 
+import logging
 from pathlib import Path
 from typing import Literal
 
@@ -52,6 +53,48 @@ class Settings(BaseSettings):
     data_dir: Path = BASE_DIR / "data"
     logs_dir: Path = BASE_DIR / "logs"
 
+    # -- Deployment environment -------------------------------------------------
+    # Drives cookie Secure flag and whether an insecure default JWT secret
+    # is merely warned about (dev) or should be treated as a hard error by
+    # ops tooling (production).
+    env: Literal["development", "production"] = "development"
+
+    # -- Backend API / Postgres (v3) --------------------------------------------
+    # The FastAPI backend + React frontend replace the old single-process
+    # Streamlit UI. Postgres is required for multi-user/RBAC; the legacy
+    # SQLite `Repository` (tools/database.py) is kept, unmodified, for the
+    # offline `cli.py --mode sqlite` fallback only.
+    database_url: str = "postgresql+psycopg2://mediagent:mediagent@localhost:5432/mediagent"
+    cors_allowed_origin: str = "http://localhost:5173"
+
+    # -- Auth (JWT via httpOnly cookie) -----------------------------------------
+    # NOTE: the default secret below is intentionally insecure so the app
+    # still boots with zero setup; a warning is logged at import time if
+    # it's still in use outside development (see bottom of this file).
+    jwt_secret_key: str = "dev-only-insecure-change-me"
+    jwt_algorithm: str = "HS256"
+    jwt_expires_minutes: int = 720
+    auth_cookie_name: str = "mediagent_session"
+
+    # -- Email notifications (v3) ------------------------------------------------
+    # Mirrors the llm_provider pattern: "mock" (default) just logs the
+    # email instead of sending it, so a fresh install still runs offline
+    # with no SMTP credentials configured.
+    email_provider: Literal["mock", "smtp"] = "mock"
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_address: str = "noreply@mediagent.local"
+    smtp_use_tls: bool = True
+
+    # -- Speech-to-text (transcript-to-report agent, v3) ------------------------
+    # "whisper_local" (default) uses the pip `openai-whisper` package —
+    # no API key needed, but pulls in torch and requires a system ffmpeg
+    # binary. "openai_whisper_api" reuses openai_api_key above instead.
+    stt_provider: Literal["whisper_local", "openai_whisper_api"] = "whisper_local"
+    whisper_model_size: str = "base"
+
     def ensure_directories(self) -> None:
         """Create any runtime directories that don't exist yet.
 
@@ -70,3 +113,10 @@ class Settings(BaseSettings):
 
 settings = Settings()
 settings.ensure_directories()
+
+if settings.env != "development" and settings.jwt_secret_key == "dev-only-insecure-change-me":
+    logging.getLogger("mediagent.config").warning(
+        "jwt_secret_key is still the insecure development default outside "
+        "a development environment — set JWT_SECRET_KEY in .env before "
+        "deploying anywhere real users can reach this."
+    )

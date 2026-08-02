@@ -1,0 +1,11 @@
+# Optional — only needed if STT_PROVIDER=whisper_local in .env (the
+# default). The app's transcript-to-report agent runs fully without this
+# if you switch STT_PROVIDER to "openai_whisper_api" instead (uses your
+# existing OPENAI_API_KEY, see requirements-llm.txt).
+#
+# NOTE: openai-whisper also requires a system `ffmpeg` binary that pip
+# cannot install for you:
+#   Windows:      choco install ffmpeg   (or download from ffmpeg.org and add to PATH)
+#   macOS:        brew install ffmpeg
+#   Debian/Ubuntu: sudo apt install ffmpeg
+openai-whisper>=20231117
