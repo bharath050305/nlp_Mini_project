@@ -37,7 +37,12 @@
       "Bash(npm run *)",
       "Bash(python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000)",
       "Bash(echo \"started with pid $!\")",
-      "Bash(mkdir -p \"C:\\\\Users\\\\bhara\\\\Downloads\\\\MediAgent_1\\\\MediAgent\\\\.claude\" 2>/dev/null; ls \"C:\\\\Users\\\\bhara\\\\Downloads\\\\MediAgent_1\\\\MediAgent\\\\.claude\")"
+      "Bash(mkdir -p \"C:\\\\Users\\\\bhara\\\\Downloads\\\\MediAgent_1\\\\MediAgent\\\\.claude\" 2>/dev/null; ls \"C:\\\\Users\\\\bhara\\\\Downloads\\\\MediAgent_1\\\\MediAgent\\\\.claude\")",
+      "Bash(curl -s -c 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/patient.cookies' -X POST http://127.0.0.1:8000/api/auth/register -H 'Content-Type: application/json' -d '{\"email\":\"patient1@test.com\",\"password\":\"testpass123\",\"full_name\":\"Pat Patient\"}')",
+      "Bash(curl -s -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/patient.cookies' http://127.0.0.1:8000/api/patients/me)",
+      "Bash(curl -s -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/staff.cookies' -X POST http://127.0.0.1:8000/api/assignments -H 'Content-Type: application/json' -d '{\"patient_id\":5,\"staff_user_id\":8,\"role_at_assignment\":\"doctor\"}')",
+      "Bash(curl -s -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/staff.cookies' -X POST http://127.0.0.1:8000/api/assignments -H 'Content-Type: application/json' -d '{\"patient_id\":5,\"staff_user_id\":9,\"role_at_assignment\":\"nurse\"}')",
+      "Bash(curl -s -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/patient.cookies' -X POST http://127.0.0.1:8000/api/patients/5/reports/upload -F 'file=@C:\\\\Users\\\\bhara\\\\Downloads\\\\MediAgent_1\\\\MediAgent\\\\uploads\\\\OMC Report Sample - Cardio.pdf;type=application/pdf')"
     ]
   }
 }
