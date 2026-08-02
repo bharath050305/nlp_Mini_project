@@ -33,7 +33,11 @@
       "Bash(npm --version)",
       "Bash(npm -v)",
       "Bash(npm create *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000)",
+      "Bash(echo \"started with pid $!\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\bhara\\\\Downloads\\\\MediAgent_1\\\\MediAgent\\\\.claude\" 2>/dev/null; ls \"C:\\\\Users\\\\bhara\\\\Downloads\\\\MediAgent_1\\\\MediAgent\\\\.claude\")"
     ]
   }
 }
