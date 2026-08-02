@@ -1,0 +1,38 @@
+diabetes
+diabetes mellitus
+type 2 diabetes
+type 1 diabetes
+hypertension
+high blood pressure
+hyperlipidemia
+hypothyroidism
+hyperthyroidism
+asthma
+chronic kidney disease
+anemia
+coronary artery disease
+atrial fibrillation
+osteoarthritis
+rheumatoid arthritis
+gastroesophageal reflux disease
+gerd
+chronic obstructive pulmonary disease
+copd
+depression
+anxiety
+obesity
+fatty liver disease
+urinary tract infection
+pneumonia
+bronchitis
+migraine
+epilepsy
+stroke
+myocardial infarction
+heart failure
+liver cirrhosis
+hepatitis
+tuberculosis
+dengue
+malaria
+covid-19

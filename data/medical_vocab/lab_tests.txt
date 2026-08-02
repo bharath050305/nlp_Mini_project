@@ -1,0 +1,39 @@
+hba1c
+fasting blood sugar
+random blood sugar
+postprandial blood sugar
+blood glucose
+complete blood count
+cbc
+hemoglobin
+hematocrit
+white blood cell count
+platelet count
+lipid profile
+total cholesterol
+ldl cholesterol
+hdl cholesterol
+triglycerides
+liver function test
+sgot
+sgpt
+bilirubin
+alkaline phosphatase
+kidney function test
+creatinine
+blood urea nitrogen
+bun
+egfr
+tsh
+t3
+t4
+vitamin d
+vitamin b12
+electrolytes
+sodium
+potassium
+esr
+crp
+urine analysis
+ecg
+chest x-ray

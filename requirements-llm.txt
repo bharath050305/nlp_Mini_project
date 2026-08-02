@@ -1,0 +1,4 @@
+# Optional — only install these if you set LLM_PROVIDER to "openai" or
+# "anthropic" in .env. The app runs fully without them (default: mock).
+openai>=1.30
+anthropic>=0.34

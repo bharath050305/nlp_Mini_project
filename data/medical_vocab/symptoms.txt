@@ -1,0 +1,27 @@
+fever
+cough
+headache
+fatigue
+nausea
+vomiting
+dizziness
+chest pain
+shortness of breath
+abdominal pain
+back pain
+joint pain
+swelling
+rash
+sore throat
+weight loss
+weight gain
+loss of appetite
+excessive thirst
+frequent urination
+blurred vision
+numbness
+tingling
+palpitations
+constipation
+diarrhea
+insomnia

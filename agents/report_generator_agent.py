@@ -1,0 +1,146 @@
+"""
+agents/report_generator_agent.py
+
+Report Generator Agent. Assembles everything the session has produced —
+summary, entities, reminders, Q&A history — into one downloadable,
+doctor-ready PDF using ReportLab.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.lib.units import cm
+from reportlab.platypus import (
+    ListFlowable,
+    ListItem,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+    Table,
+    TableStyle,
+)
+
+from config import settings
+from schemas import ExtractedEntities, QAResult, Reminder, ReportSummary
+from utils.exceptions import ReportGenerationError
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
+
+
+def _bulleted(items: list[str], style: ParagraphStyle) -> ListFlowable:
+    return ListFlowable(
+        [ListItem(Paragraph(item, style)) for item in items] or [ListItem(Paragraph("None", style))],
+        bulletType="bullet",
+    )
+
+
+def generate_pdf_report(
+    *,
+    patient_name: str,
+    summary: ReportSummary | None,
+    entities: ExtractedEntities | None,
+    reminders: list[Reminder],
+    qa_history: list[QAResult],
+    output_filename: str | None = None,
+) -> str:
+    """Build the doctor-summary PDF and return its filesystem path.
+
+    Any section with no data (e.g. no Q&A asked yet) is rendered with a
+    "None" placeholder rather than omitted, so the report's structure is
+    always predictable.
+    """
+    try:
+        filename = output_filename or f"mediagent_report_{datetime.now():%Y%m%d_%H%M%S}.pdf"
+        output_path = settings.reports_dir / filename
+
+        doc = SimpleDocTemplate(str(output_path), pagesize=A4, topMargin=2 * cm, bottomMargin=2 * cm)
+        styles = getSampleStyleSheet()
+        h1 = styles["Heading1"]
+        h2 = styles["Heading2"]
+        body = styles["BodyText"]
+
+        story = [
+            Paragraph("MediAgent — Patient Report Summary", h1),
+            Paragraph(f"Patient: {patient_name}", body),
+            Paragraph(f"Generated: {datetime.now():%Y-%m-%d %H:%M}", body),
+            Spacer(1, 0.5 * cm),
+        ]
+
+        story.append(Paragraph("Patient Summary", h2))
+        story.append(Paragraph(summary.patient_summary if summary else "No summary generated yet.", body))
+        story.append(Spacer(1, 0.3 * cm))
+
+        if summary:
+            story.append(Paragraph("Key Findings", h2))
+            story.append(_bulleted(summary.key_findings, body))
+            story.append(Spacer(1, 0.3 * cm))
+
+            story.append(Paragraph("Abnormal Values", h2))
+            story.append(_bulleted(summary.abnormal_values, body))
+            story.append(Spacer(1, 0.3 * cm))
+
+            story.append(Paragraph("Recommendations", h2))
+            story.append(_bulleted(summary.recommendations, body))
+            story.append(Spacer(1, 0.3 * cm))
+
+        if entities:
+            story.append(Paragraph("Extracted Entities", h2))
+            table_data = [["Category", "Detected"]]
+            for label, values in [
+                ("Diseases", entities.diseases),
+                ("Medicines", entities.medicines),
+                ("Symptoms", entities.symptoms),
+                ("Lab Tests", entities.lab_tests),
+                ("Lab Values", entities.lab_values),
+                ("Dosages", entities.dosages),
+            ]:
+                table_data.append([label, ", ".join(values) or "None detected"])
+            table = Table(table_data, colWidths=[3.5 * cm, 12 * cm])
+            table.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2b3a55")),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 9),
+                    ]
+                )
+            )
+            story.append(table)
+            story.append(Spacer(1, 0.3 * cm))
+
+        story.append(Paragraph("Medicine Reminders", h2))
+        rem_lines = [f"{r.medicine_name} — {r.dosage or 'dosage not set'} ({r.frequency or 'no schedule'})" for r in reminders]
+        story.append(_bulleted(rem_lines, body))
+        story.append(Spacer(1, 0.3 * cm))
+
+        story.append(Paragraph("Questions Asked & AI Responses", h2))
+        if qa_history:
+            for qa in qa_history:
+                story.append(Paragraph(f"<b>Q:</b> {qa.question}", body))
+                story.append(Paragraph(f"<b>A:</b> {qa.answer}", body))
+                story.append(Spacer(1, 0.15 * cm))
+        else:
+            story.append(Paragraph("No questions asked this session.", body))
+
+        story.append(Spacer(1, 0.5 * cm))
+        story.append(
+            Paragraph(
+                "<i>This report is generated by an AI assistant for informational purposes only "
+                "and does not constitute medical advice or a diagnosis.</i>",
+                body,
+            )
+        )
+
+        doc.build(story)
+        logger.info("Generated PDF report at %s", output_path)
+        return str(output_path)
+
+    except Exception as exc:
+        raise ReportGenerationError(f"Failed to generate PDF report: {exc}") from exc

@@ -1,0 +1,24 @@
+{
+  "_disclaimer": "Curated, textbook-level reference pairs for educational awareness only. NOT exhaustive and NOT a substitute for a pharmacist or doctor. Always confirm interactions with a licensed professional before changing any medication.",
+  "pairs": [
+    {"a": "warfarin", "b": "aspirin", "severity": "major", "note": "Combined blood-thinning effect can significantly increase bleeding risk."},
+    {"a": "warfarin", "b": "ibuprofen", "severity": "major", "note": "NSAIDs combined with warfarin increase bleeding risk."},
+    {"a": "warfarin", "b": "naproxen", "severity": "major", "note": "NSAIDs combined with warfarin increase bleeding risk."},
+    {"a": "warfarin", "b": "amoxicillin", "severity": "moderate", "note": "Some antibiotics can alter warfarin's anticoagulant effect; INR monitoring is often recommended."},
+    {"a": "ibuprofen", "b": "lisinopril", "severity": "moderate", "note": "NSAIDs can reduce the blood-pressure-lowering effect of ACE inhibitors and stress the kidneys."},
+    {"a": "ibuprofen", "b": "losartan", "severity": "moderate", "note": "NSAIDs can reduce the effectiveness of ARBs and stress the kidneys."},
+    {"a": "ibuprofen", "b": "furosemide", "severity": "moderate", "note": "NSAIDs can blunt the effect of loop diuretics."},
+    {"a": "diclofenac", "b": "lisinopril", "severity": "moderate", "note": "NSAIDs can reduce the blood-pressure-lowering effect of ACE inhibitors and stress the kidneys."},
+    {"a": "atorvastatin", "b": "azithromycin", "severity": "moderate", "note": "Some macrolide antibiotics can raise statin levels, increasing muscle-injury (myopathy) risk."},
+    {"a": "simvastatin", "b": "azithromycin", "severity": "moderate", "note": "Some macrolide antibiotics can raise statin levels, increasing muscle-injury (myopathy) risk."},
+    {"a": "simvastatin", "b": "amlodipine", "severity": "moderate", "note": "Amlodipine can raise simvastatin levels; many guidelines cap the simvastatin dose in this combination."},
+    {"a": "sertraline", "b": "ibuprofen", "severity": "moderate", "note": "SSRIs combined with NSAIDs increase bleeding risk, particularly gastrointestinal."},
+    {"a": "sertraline", "b": "tramadol", "severity": "major", "note": "Combining an SSRI with tramadol raises the risk of serotonin syndrome."},
+    {"a": "fluoxetine", "b": "tramadol", "severity": "major", "note": "Combining an SSRI with tramadol raises the risk of serotonin syndrome."},
+    {"a": "clopidogrel", "b": "ibuprofen", "severity": "moderate", "note": "NSAIDs combined with antiplatelet drugs increase bleeding risk."},
+    {"a": "clopidogrel", "b": "omeprazole", "severity": "moderate", "note": "Some PPIs can reduce how well clopidogrel is activated, lowering its antiplatelet effect."},
+    {"a": "levothyroxine", "b": "omeprazole", "severity": "moderate", "note": "PPIs can reduce levothyroxine absorption; separating dose timing is often recommended."},
+    {"a": "gabapentin", "b": "tramadol", "severity": "moderate", "note": "Both are sedating; combined use increases drowsiness and respiratory depression risk."},
+    {"a": "metformin", "b": "furosemide", "severity": "moderate", "note": "Diuretics can affect kidney function, which affects how metformin is cleared from the body."}
+  ]
+}

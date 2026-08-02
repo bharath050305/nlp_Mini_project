@@ -1,0 +1,11 @@
+# Ruff configuration for MediAgent.
+#
+# DTZ005 (naive datetime.now()) is intentionally ignored: reminder "next
+# dose" times and report timestamps are meant to be the patient's local
+# wall-clock time, not UTC — adding tz-awareness here would show the
+# wrong time on the dashboard. Every other default rule stays active.
+
+target-version = "py312"
+
+[lint]
+ignore = ["DTZ005"]
