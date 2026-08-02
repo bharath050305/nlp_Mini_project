@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { patientsApi } from "@/api/patients";
 import type { CreatePatientPayload } from "@/api/patients";
@@ -33,10 +33,23 @@ export default function AssignmentManagementPage() {
     queryKey: ["users", "nurse"],
     queryFn: () => usersApi.list("nurse"),
   });
-  const assignmentsQuery = useQuery({
-    queryKey: ["assignments"],
-    queryFn: () => assignmentsApi.list(),
+
+  // The backend only supports listing assignments for a single patient at a
+  // time, so we fan out one query per patient and flatten the results.
+  const patientIds = (patientsQuery.data ?? []).map((p) => p.id);
+  const assignmentsQueries = useQueries({
+    queries: patientIds.map((id) => ({
+      queryKey: ["assignments", id],
+      queryFn: () => assignmentsApi.listForPatient(id),
+      enabled: patientIds.length > 0,
+    })),
   });
+  const assignmentsLoading = assignmentsQueries.some((q) => q.isLoading);
+  const allAssignments = useMemo(
+    () => assignmentsQueries.flatMap((q) => q.data ?? []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [assignmentsQueries.map((q) => q.dataUpdatedAt).join(",")],
+  );
 
   const patients = patientsQuery.data ?? [];
   const patientNameById = useMemo(

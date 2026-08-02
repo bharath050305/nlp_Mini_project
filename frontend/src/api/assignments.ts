@@ -8,11 +8,11 @@ export interface CreateAssignmentPayload {
 }
 
 export const assignmentsApi = {
-  list: (patientId?: number) =>
+  // The backend requires patient_id on GET /api/assignments (no "list all" mode),
+  // so listing for a single patient is the only supported call shape.
+  listForPatient: (patientId: number) =>
     apiClient
-      .get<AssignmentOut[]>("/api/assignments", {
-        params: patientId ? { patient_id: patientId } : undefined,
-      })
+      .get<AssignmentOut[]>("/api/assignments", { params: { patient_id: patientId } })
       .then((r) => r.data),
   create: (payload: CreateAssignmentPayload) =>
     apiClient.post<AssignmentOut>("/api/assignments", payload).then((r) => r.data),
