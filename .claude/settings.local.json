@@ -53,7 +53,9 @@
       "Bash(curl -s -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/doctor.cookies' http://127.0.0.1:8000/api/patients/5/reports)",
       "Bash(curl -s -c 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/nurse.cookies' -X POST http://127.0.0.1:8000/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"nurse1@test.com\",\"password\":\"testpass123\"}')",
       "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/nurse.cookies' -X POST http://127.0.0.1:8000/api/patients/5/chat -H 'Content-Type: application/json' -d '{\"message\":\"hi\"}')",
-      "Bash(curl -s -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/staff.cookies' http://127.0.0.1:8000/api/assignments)"
+      "Bash(curl -s -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/staff.cookies' http://127.0.0.1:8000/api/assignments)",
+      "Bash(curl -s -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/doctor.cookies' -X POST http://127.0.0.1:8000/api/patients/5/transcripts/upload -F 'file=@C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/test_audio.wav;type=audio/wav')",
+      "Bash(curl -s -b __TRACKED_VAR__/doctor.cookies __TRACKED_VAR__/api/transcripts/2)"
     ]
   }
 }
