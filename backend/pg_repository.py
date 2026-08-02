@@ -18,6 +18,8 @@ agents expect). New v3 methods return the SQLAlchemy ORM objects directly
 
 from __future__ import annotations
 
+from datetime import UTC
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -306,13 +308,13 @@ class PgRepository:
         )
 
     def deactivate_assignment(self, assignment_id: int) -> bool:
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         row = self.db.get(db_models.CareAssignment, assignment_id)
         if row is None:
             return False
         row.active = False
-        row.unassigned_at = datetime.now(timezone.utc)
+        row.unassigned_at = datetime.now(UTC)
         self.db.commit()
         return True
 
@@ -436,26 +438,26 @@ class PgRepository:
         return q.order_by(db_models.Notification.created_at.desc()).offset(offset).limit(limit).all()
 
     def mark_notification_read(self, notification_id: int, user_id: int) -> db_models.Notification | None:
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         row = self.db.query(db_models.Notification).filter_by(id=notification_id, user_id=user_id).first()
         if row is None:
             return None
         row.status = "read"
-        row.read_at = datetime.now(timezone.utc)
+        row.read_at = datetime.now(UTC)
         self.db.commit()
         self.db.refresh(row)
         return row
 
     def mark_all_read(self, user_id: int) -> int:
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         rows = (
             self.db.query(db_models.Notification)
             .filter(db_models.Notification.user_id == user_id, db_models.Notification.status != "read")
             .all()
         )
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for row in rows:
             row.status = "read"
             row.read_at = now
@@ -470,13 +472,13 @@ class PgRepository:
         )
 
     def mark_notification_dispatched(self, notification_id: int, *, success: bool) -> None:
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         row = self.db.get(db_models.Notification, notification_id)
         if row is None:
             return
         row.status = "sent" if success else "failed"
-        row.sent_at = datetime.now(timezone.utc)
+        row.sent_at = datetime.now(UTC)
         self.db.commit()
 
     # -- transcripts / SOAP notes ----------------------------------------------

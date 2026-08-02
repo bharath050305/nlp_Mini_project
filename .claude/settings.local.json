@@ -22,7 +22,14 @@
       "Bash(pkill -f \"uvicorn backend.main:app\")",
       "Bash(powershell -Command 'Get-Process python -ErrorAction SilentlyContinue | Where-Object {$_.CommandLine -like '\\\\''*uvicorn*'\\\\''} | Stop-Process -Force')",
       "Bash(powershell -Command 'Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }')",
-      "Bash(curl -s -o /dev/null -w \"post-kill status: %{http_code}\\\\n\" http://127.0.0.1:8000/api/health --max-time 3)"
+      "Bash(curl -s -o /dev/null -w \"post-kill status: %{http_code}\\\\n\" http://127.0.0.1:8000/api/health --max-time 3)",
+      "Bash(grep \"\\\\.env$\")",
+      "Bash(git commit -q -m ' *)",
+      "Bash(python cli.py --mode postgres)",
+      "Bash(python cli.py --mode sqlite)",
+      "Bash(python -m pytest -q)",
+      "Bash(ruff check *)",
+      "Bash(python -c \"from backend.main import app; print\\('backend imports OK, routes:', len\\(app.openapi\\(\\)['paths']\\)\\)\")"
     ]
   }
 }

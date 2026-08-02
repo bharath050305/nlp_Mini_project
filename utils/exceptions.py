@@ -4,10 +4,10 @@ utils/exceptions.py
 Custom exception hierarchy for MediAgent.
 
 Every agent/tool raises one of these instead of a bare Exception so that
-`app.py` / `cli.py` can catch a single `MediAgentError` at the top level
-and show the user a clean message, while still being able to branch on
-the specific subtype when useful (e.g. show a "re-upload PDF" hint only
-for `PDFProcessingError`).
+`cli.py` and the FastAPI routers (`backend/routers/`) can catch a single
+`MediAgentError` at the top level and show the user a clean message,
+while still being able to branch on the specific subtype when useful
+(e.g. show a "re-upload PDF" hint only for `PDFProcessingError`).
 """
 
 from __future__ import annotations

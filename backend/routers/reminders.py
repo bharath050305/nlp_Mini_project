@@ -17,9 +17,17 @@ from backend import db_models
 from backend.db import get_db
 from backend.deps import get_current_user, require_patient_access
 from backend.pg_repository import PgRepository
-from backend.schemas_api import MarkDoseRequest, ReminderCreateRequest, ReminderOut, ReminderUpdateRequest
+from backend.schemas_api import (
+    MarkDoseRequest,
+    ReminderCreateRequest,
+    ReminderOut,
+    ReminderUpdateRequest,
+)
 from backend.services import refill_service
-from backend.services.scheduler_service import schedule_reminder_slot, unschedule_reminder_slot
+from backend.services.scheduler_service import (
+    schedule_reminder_slot,
+    unschedule_reminder_slot,
+)
 
 router = APIRouter(prefix="/api/patients/{patient_id}/reminders", tags=["reminders"])
 

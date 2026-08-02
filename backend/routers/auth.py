@@ -13,6 +13,8 @@ browser sending the cookie automatically on every request.
 
 from __future__ import annotations
 
+from datetime import UTC
+
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
@@ -59,14 +61,14 @@ def register(payload: RegisterRequest, response: Response, db: Session = Depends
 
 @router.post("/login", response_model=UserOut)
 def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> UserOut:
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     repo = PgRepository(db)
     user = repo.get_user_by_email(payload.email)
     if user is None or not user.is_active or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect email or password.")
 
-    user.last_login_at = datetime.now(timezone.utc)
+    user.last_login_at = datetime.now(UTC)
     db.commit()
 
     token = create_access_token(user.id, user.role)

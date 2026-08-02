@@ -52,7 +52,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
-    patient_profile: Mapped["Patient | None"] = relationship(
+    patient_profile: Mapped[Patient | None] = relationship(
         back_populates="user", uselist=False, foreign_keys="Patient.user_id"
     )
 
@@ -70,7 +70,7 @@ class Patient(Base):
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    user: Mapped["User | None"] = relationship(back_populates="patient_profile", foreign_keys=[user_id])
+    user: Mapped[User | None] = relationship(back_populates="patient_profile", foreign_keys=[user_id])
 
 
 class CareAssignment(Base):
@@ -131,7 +131,7 @@ class Reminder(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    slots: Mapped[list["ReminderScheduleSlot"]] = relationship(
+    slots: Mapped[list[ReminderScheduleSlot]] = relationship(
         back_populates="reminder", cascade="all, delete-orphan"
     )
 
@@ -151,7 +151,7 @@ class ReminderScheduleSlot(Base):
     day_of_month: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     apscheduler_job_id: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    reminder: Mapped["Reminder"] = relationship(back_populates="slots")
+    reminder: Mapped[Reminder] = relationship(back_populates="slots")
 
 
 class DoseLog(Base):

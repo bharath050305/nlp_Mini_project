@@ -13,9 +13,16 @@ history.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    UploadFile,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from backend import db_models
@@ -160,7 +167,7 @@ def finalize_soap_note(
         soap.id,
         status="finalized",
         finalized_by=current_user.id,
-        finalized_at=datetime.now(timezone.utc),
+        finalized_at=datetime.now(UTC),
         linked_report_id=pg_repo_report.id,
         entities_json=entities.model_dump_json(),
     )

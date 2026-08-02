@@ -6,8 +6,8 @@ scoped via `require_patient_access` — patients see their own, doctors and
 nurses see it for their assigned patients, staff never reaches this router.
 
 Upload reuses the exact same `extract_text_from_bytes` -> `Orchestrator
-.load_report` path the old Streamlit UI used (see app.py's upload
-handler) so report ingestion behaves identically.
+.load_report` path the old Streamlit UI used, so report ingestion
+behaves identically to before.
 """
 
 from __future__ import annotations

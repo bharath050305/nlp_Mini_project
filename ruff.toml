@@ -9,3 +9,9 @@ target-version = "py312"
 
 [lint]
 ignore = ["DTZ005"]
+
+[lint.per-file-ignores]
+# B008 (function-call-in-default-argument) flags FastAPI's idiomatic
+# `Depends(...)`/`BackgroundTasks` default-argument pattern, which is
+# required by FastAPI's dependency-injection design, not a bug.
+"backend/**/*.py" = ["B008"]

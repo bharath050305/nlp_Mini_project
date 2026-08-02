@@ -16,7 +16,7 @@ already-scheduled slot is a no-op replace, not a duplicate.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from apscheduler.jobstores.base import JobLookupError
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
@@ -128,8 +128,8 @@ def _fire_dose_reminder(reminder_id: int, slot_id: int) -> None:
 
         get_scheduler().add_job(
             _check_missed_dose,
-            trigger=DateTrigger(run_date=datetime.now(timezone.utc) + _MISSED_DOSE_CHECK_DELAY),
-            id=f"missed-check:{reminder_id}:{slot_id}:{int(datetime.now(timezone.utc).timestamp())}",
+            trigger=DateTrigger(run_date=datetime.now(UTC) + _MISSED_DOSE_CHECK_DELAY),
+            id=f"missed-check:{reminder_id}:{slot_id}:{int(datetime.now(UTC).timestamp())}",
             args=[reminder_id, slot_id],
         )
     finally:
@@ -149,7 +149,7 @@ def _check_missed_dose(reminder_id: int, slot_id: int) -> None:
         if reminder is None or not reminder.active:
             return
 
-        cutoff = datetime.now(timezone.utc) - _MISSED_DOSE_LOOKBACK
+        cutoff = datetime.now(UTC) - _MISSED_DOSE_LOOKBACK
         recent_taken = (
             db.query(db_models.DoseLog)
             .filter(
