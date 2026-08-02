@@ -218,7 +218,12 @@ class Orchestrator:
             if not self.session.has_report:
                 raise MediAgentError("Upload a report before asking questions about it.")
             question = task.payload.get("question") or task.description
-            result = qa_agent.answer_question(self.session.report_text, question)
+            # Recent turns were already persisted by the previous
+            # handle_request() call (add_conversation_turn runs at the end
+            # of that method) — fetching them here naturally excludes the
+            # in-flight question, no special-casing needed.
+            history = self.repo.get_conversation_history(self.session.patient_id, limit=5)
+            result = qa_agent.answer_question(self.session.report_text, question, history=history)
             self.session.qa_history.append(result)
             return result.answer
 

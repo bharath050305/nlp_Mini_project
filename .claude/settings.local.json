@@ -55,7 +55,16 @@
       "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/nurse.cookies' -X POST http://127.0.0.1:8000/api/patients/5/chat -H 'Content-Type: application/json' -d '{\"message\":\"hi\"}')",
       "Bash(curl -s -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/staff.cookies' http://127.0.0.1:8000/api/assignments)",
       "Bash(curl -s -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/doctor.cookies' -X POST http://127.0.0.1:8000/api/patients/5/transcripts/upload -F 'file=@C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/test_audio.wav;type=audio/wav')",
-      "Bash(curl -s -b __TRACKED_VAR__/doctor.cookies __TRACKED_VAR__/api/transcripts/2)"
+      "Bash(curl -s -b __TRACKED_VAR__/doctor.cookies __TRACKED_VAR__/api/transcripts/2)",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty State\")",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 5173 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty State\")",
+      "PowerShell(netsh interface ipv4 show excludedportrange protocol=tcp)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 5173 -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Process -Id 8632, 22916 -ErrorAction SilentlyContinue)",
+      "Read(//c/Program Files/PostgreSQL/18/share/extension/**)",
+      "Read(//c/Program Files/PostgreSQL/18/lib/**)",
+      "WebSearch"
     ]
   }
 }

@@ -47,13 +47,20 @@ QA_SYSTEM_PROMPT = (
     "You are a medical-report question-answering agent. Answer ONLY using "
     "the CONTEXT provided below, which was retrieved from the patient's own "
     "report. If the context doesn't contain the answer, say so plainly — "
-    "never guess or use outside medical knowledge for specific values."
+    "never guess or use outside medical knowledge for specific values. If "
+    "RECENT_CONVERSATION is provided, use it only to understand what a "
+    "follow-up question refers to (e.g. pronouns, \"what about X instead\") "
+    "— it never substitutes for CONTEXT as a source of facts."
 )
 
 
-def build_qa_prompt(context_chunks: list[str], question: str) -> str:
+def build_qa_prompt(context_chunks: list[str], question: str, history_block: str = "") -> str:
     context = "\n---\n".join(context_chunks)
-    return f"CONTEXT:\n{context}\n\nQUESTION: {question}\n\nTASK: Answer the question using only the CONTEXT above."
+    history_section = f"RECENT_CONVERSATION:\n{history_block}\n\n" if history_block else ""
+    return (
+        f"{history_section}CONTEXT:\n{context}\n\nQUESTION: {question}\n\n"
+        "TASK: Answer the question using only the CONTEXT above."
+    )
 
 
 SOAP_SYSTEM_PROMPT = (

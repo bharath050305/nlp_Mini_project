@@ -111,6 +111,7 @@ class MockLLMProvider(LLMProvider):
     def _answer(self, s: dict[str, str]) -> str:
         question = s.get("QUESTION", "").strip()
         context = s.get("CONTEXT", "")
+        history_block = s.get("RECENT_CONVERSATION", "")
 
         # "what is X" / "explain X" -> canned term dictionary first
         m = re.match(r"(what\s+is|explain)\s+(.*)", question.strip(), re.IGNORECASE)
@@ -127,13 +128,14 @@ class MockLLMProvider(LLMProvider):
         # Extractive answer: the sentence (within the retrieved chunks)
         # with the most keyword overlap with the question.
         q_words = {w.lower() for w in re.findall(r"[a-zA-Z0-9.]+", question) if len(w) > 2}
-        best_sentence, best_score = "", -1
-        for chunk in chunks:
-            for sentence in re.split(r"(?<=[.!?])\s+", chunk):
-                words = {w.lower() for w in re.findall(r"[a-zA-Z0-9.]+", sentence)}
-                score = len(q_words & words)
-                if score > best_score and sentence.strip():
-                    best_score, best_sentence = score, sentence.strip()
+        best_sentence, best_score = self._best_matching_sentence(chunks, q_words)
+
+        # Follow-up fallback: a topic-less question ("what about that?")
+        # has no keywords of its own to match on — broaden the pool with
+        # the recent conversation's words before giving up.
+        if best_score <= 0 and history_block:
+            history_words = {w.lower() for w in re.findall(r"[a-zA-Z0-9.]+", history_block) if len(w) > 2}
+            best_sentence, best_score = self._best_matching_sentence(chunks, q_words | history_words)
 
         if best_score <= 0 or not best_sentence:
             return (
@@ -141,6 +143,17 @@ class MockLLMProvider(LLMProvider):
                 "Try rephrasing, or ask about a value that appears in the document."
             )
         return best_sentence
+
+    @staticmethod
+    def _best_matching_sentence(chunks: list[str], keywords: set[str]) -> tuple[str, int]:
+        best_sentence, best_score = "", -1
+        for chunk in chunks:
+            for sentence in re.split(r"(?<=[.!?])\s+", chunk):
+                words = {w.lower() for w in re.findall(r"[a-zA-Z0-9.]+", sentence)}
+                score = len(keywords & words)
+                if score > best_score and sentence.strip():
+                    best_score, best_sentence = score, sentence.strip()
+        return best_sentence, best_score
 
     def _structure_soap(self, s: dict[str, str]) -> str:
         """Rule-based SOAP structuring: no real language understanding, so
