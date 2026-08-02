@@ -243,3 +243,37 @@ class SoapNoteUpdateRequest(BaseModel):
     objective: str | None = None
     assessment: str | None = None
     plan: str | None = None
+
+
+# --------------------------------------------------------------------------
+# Doctor/nurse analytics (v4)
+# --------------------------------------------------------------------------
+class LabTrendPoint(BaseModel):
+    report_id: int
+    report_date: datetime
+    report_filename: str
+    label: str
+    raw_value: str
+    numeric_value: float
+    is_abnormal: bool
+    reference_range: str
+
+
+class ReminderAdherence(BaseModel):
+    reminder_id: int
+    medicine_name: str
+    taken: int
+    skipped: int
+    missed: int
+    adherence_pct: float  # taken / (taken + missed), skipped excluded from the denominator
+
+
+AbnormalTrend = Literal["up", "down", "flat", "unknown"]
+
+
+class AnalyticsSummary(BaseModel):
+    total_reports: int
+    total_abnormal_readings: int
+    abnormal_trend: AbnormalTrend
+    active_reminders: int
+    doses_missed_this_week: int

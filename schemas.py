@@ -141,6 +141,19 @@ class EvidenceItem(BaseModel):
 
 
 # --------------------------------------------------------------------------
+# Lab value reference-range analysis (agents/lab_analysis.py) — shared by
+# the summarizer's abnormal-value flagging and the doctor analytics
+# dashboard (v4), so both use one reference-range table, not two.
+# --------------------------------------------------------------------------
+class LabReading(BaseModel):
+    raw_value: str
+    numeric_value: float
+    label: str  # e.g. "HbA1c/percentage value"
+    is_abnormal: bool
+    reference_range: str
+
+
+# --------------------------------------------------------------------------
 # Summarization
 # --------------------------------------------------------------------------
 class ReportSummary(BaseModel):

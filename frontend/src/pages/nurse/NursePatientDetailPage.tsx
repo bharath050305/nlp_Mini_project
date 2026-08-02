@@ -12,6 +12,7 @@ import ReportList from "@/components/reports/ReportList";
 import InteractionsPanel from "@/components/reports/InteractionsPanel";
 import ReminderList from "@/components/reminders/ReminderList";
 import TimelineView from "@/components/timeline/TimelineView";
+import AnalyticsPanel from "@/components/analytics/AnalyticsPanel";
 
 export default function NursePatientDetailPage() {
   const { patientId } = useParams<{ patientId: string }>();
@@ -58,6 +59,11 @@ export default function NursePatientDetailPage() {
             key: "reminders",
             label: "Reminders",
             content: <RemindersTab patientId={patient.id} />,
+          },
+          {
+            key: "analytics",
+            label: "Analytics",
+            content: <AnalyticsPanel patientId={patient.id} />,
           },
           {
             key: "timeline",

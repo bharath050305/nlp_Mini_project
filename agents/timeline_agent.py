@@ -25,7 +25,7 @@ from utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-def _entities_for_report(repo: Repository, report) -> ExtractedEntities:
+def get_or_compute_entities(repo: Repository, report) -> ExtractedEntities:
     """Reuse cached entities if this report was already analyzed; otherwise
     run NER once and cache the result back onto the row."""
     if report.entities_json:
@@ -52,7 +52,7 @@ def build_timeline(repo: Repository, patient_id: int) -> list[TimelineEvent]:
     seen_medicines: set[str] = set()
 
     for report in reports:
-        entities = _entities_for_report(repo, report)
+        entities = get_or_compute_entities(repo, report)
         diseases = {d.lower() for d in entities.diseases}
         medicines = {m.lower() for m in entities.medicines}
 

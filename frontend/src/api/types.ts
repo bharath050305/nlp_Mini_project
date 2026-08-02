@@ -221,3 +221,34 @@ export interface SoapNoteOut {
 export interface ApiErrorBody {
   detail: string;
 }
+
+// -- Analytics (v4) ----------------------------------------------------------
+export interface LabTrendPoint {
+  report_id: number;
+  report_date: string;
+  report_filename: string;
+  label: string;
+  raw_value: string;
+  numeric_value: number;
+  is_abnormal: boolean;
+  reference_range: string;
+}
+
+export interface ReminderAdherence {
+  reminder_id: number;
+  medicine_name: string;
+  taken: number;
+  skipped: number;
+  missed: number;
+  adherence_pct: number;
+}
+
+export type AbnormalTrend = "up" | "down" | "flat" | "unknown";
+
+export interface AnalyticsSummary {
+  total_reports: number;
+  total_abnormal_readings: number;
+  abnormal_trend: AbnormalTrend;
+  active_reminders: number;
+  doses_missed_this_week: number;
+}

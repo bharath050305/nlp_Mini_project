@@ -12,8 +12,7 @@ Medical Summarizer Agent. Combines two layers deliberately:
 
 from __future__ import annotations
 
-import re
-
+from agents.lab_analysis import analyze_lab_values
 from llm import get_llm_provider
 from prompts import SUMMARIZER_SYSTEM_PROMPT, build_summarizer_prompt
 from schemas import EvidenceItem, ExtractedEntities, ReportSummary
@@ -21,47 +20,31 @@ from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# (regex to pull the number out of a LAB_VALUE string, low, high, unit label)
-# Deliberately small and named-value based — a real system would key this
-# off the LAB_TEST name too, but for a mini project a handful of the most
-# common reference ranges is enough to make "abnormal value flagging"
-# genuinely demonstrable rather than hand-waved.
-_RANGE_CHECKS: list[tuple[re.Pattern, float, float, str]] = [
-    (re.compile(r"(\d+(\.\d+)?)\s?%"), 4.0, 5.6, "HbA1c/percentage value"),
-    (re.compile(r"(\d+(\.\d+)?)\s?mg/dl"), 70, 140, "mg/dL value"),
-    (re.compile(r"(\d+(\.\d+)?)\s?mmhg"), 90, 120, "blood pressure value"),
-    (re.compile(r"(\d+(\.\d+)?)\s?bpm"), 60, 100, "heart-rate value"),
-]
-
 
 def _check_lab_values(lab_values: list[str]) -> tuple[list[str], list[EvidenceItem]]:
-    """Check each lab value against a small reference-range table.
+    """Check each lab value against the shared reference-range table
+    (agents/lab_analysis.py — also used by the doctor analytics dashboard).
 
     Returns (abnormal_value_strings, full_evidence_trail). The evidence
-    trail — new in this build — includes every value that was actually
-    checked, not just the ones flagged abnormal, so a reader can see what
-    the system *did* check rather than only what it's warning about
-    (survey Sec. 9.5: explanations should reveal the reasoning process,
-    not just the conclusion). Anything that doesn't match a known pattern
-    is left uncommented on rather than guessed at — silence is safer than
-    a false "abnormal" label.
+    trail includes every value that was actually checked, not just the
+    ones flagged abnormal, so a reader can see what the system *did*
+    check rather than only what it's warning about (survey Sec. 9.5:
+    explanations should reveal the reasoning process, not just the
+    conclusion). Anything that doesn't match a known pattern is left
+    uncommented on rather than guessed at — silence is safer than a
+    false "abnormal" label.
     """
     abnormal: list[str] = []
     evidence: list[EvidenceItem] = []
-    for value in lab_values:
-        for pattern, low, high, label in _RANGE_CHECKS:
-            m = pattern.search(value.lower())
-            if m:
-                num = float(m.group(1))
-                is_abnormal = num < low or num > high
-                range_str = f"{low}-{high}"
-                if is_abnormal:
-                    abnormal.append(f"{value} (outside typical {label} range {range_str})")
-                    claim = f"{value} is outside the typical range for a {label}"
-                else:
-                    claim = f"{value} is within the typical range for a {label}"
-                evidence.append(EvidenceItem(claim=claim, evidence=f"Detected value: {value}", reference_range=range_str))
-                break
+    for reading in analyze_lab_values(lab_values):
+        if reading.is_abnormal:
+            abnormal.append(f"{reading.raw_value} (outside typical {reading.label} range {reading.reference_range})")
+            claim = f"{reading.raw_value} is outside the typical range for a {reading.label}"
+        else:
+            claim = f"{reading.raw_value} is within the typical range for a {reading.label}"
+        evidence.append(
+            EvidenceItem(claim=claim, evidence=f"Detected value: {reading.raw_value}", reference_range=reading.reference_range)
+        )
     return abnormal, evidence
 
 

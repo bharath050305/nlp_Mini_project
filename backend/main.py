@@ -17,6 +17,7 @@ from sqlalchemy import text
 
 from backend.db import engine
 from backend.routers import (
+    analytics,
     assignments,
     auth,
     chat,
@@ -66,6 +67,7 @@ for router in (
     reminders.router,
     notifications.router,
     transcripts.router,
+    analytics.router,
 ):
     app.include_router(router)
 
