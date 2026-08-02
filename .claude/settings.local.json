@@ -104,7 +104,11 @@
       "Bash(curl -s -c 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/staff2.cookies' -X POST http://127.0.0.1:8000/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"staff@test.com\",\"password\":\"testpass123\"}' -o /dev/null -w 'staff login: %{http_code}\\\\n')",
       "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/staff2.cookies' http://127.0.0.1:8000/api/patients/5/analytics/summary)",
       "Bash(curl -s -c 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/nurse2.cookies' -X POST http://127.0.0.1:8000/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"nurse1@test.com\",\"password\":\"testpass123\"}' -o /dev/null -w 'nurse login: %{http_code}\\\\n')",
-      "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/nurse2.cookies' http://127.0.0.1:8000/api/patients/5/analytics/summary)"
+      "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/nurse2.cookies' http://127.0.0.1:8000/api/patients/5/analytics/summary)",
+      "Bash(powershell -Command \"Stop-Service -Name postgresql-x64-18 -Force\")",
+      "Bash(curl -s -o /dev/null -w \"health with DB stopped: %{http_code}\\\\n\" http://127.0.0.1:8000/api/health)",
+      "Bash(powershell -Command \"Start-Service -Name postgresql-x64-18\")",
+      "Bash(curl -s -o /dev/null -w \"health after DB restarted: %{http_code}\\\\n\" http://127.0.0.1:8000/api/health)"
     ]
   }
 }

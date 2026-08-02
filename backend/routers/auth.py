@@ -15,12 +15,13 @@ from __future__ import annotations
 
 from datetime import UTC
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from backend.db import get_db
 from backend.deps import get_current_user
 from backend.pg_repository import PgRepository
+from backend.rate_limit import limiter
 from backend.schemas_api import LoginRequest, RegisterRequest, UserOut
 from backend.security import create_access_token, hash_password, verify_password
 from config import settings
@@ -41,7 +42,8 @@ def _set_auth_cookie(response: Response, token: str) -> None:
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def register(payload: RegisterRequest, response: Response, db: Session = Depends(get_db)) -> UserOut:
+@limiter.limit(settings.auth_rate_limit)
+def register(request: Request, payload: RegisterRequest, response: Response, db: Session = Depends(get_db)) -> UserOut:
     repo = PgRepository(db)
     if repo.get_user_by_email(payload.email) is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, "An account with this email already exists.")
@@ -60,7 +62,8 @@ def register(payload: RegisterRequest, response: Response, db: Session = Depends
 
 
 @router.post("/login", response_model=UserOut)
-def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> UserOut:
+@limiter.limit(settings.auth_rate_limit)
+def login(request: Request, payload: LoginRequest, response: Response, db: Session = Depends(get_db)) -> UserOut:
     from datetime import datetime
 
     repo = PgRepository(db)

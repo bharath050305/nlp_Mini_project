@@ -35,6 +35,20 @@ See [docs/RAG.md](docs/RAG.md) for how the existing retrieval-augmented QA
 system works, and [Role-based access control](#role-based-access-control)
 below for the v3 permission model.
 
+## What's new in v4
+
+Five capability upgrades, plus a security/config hardening pass (secrets,
+CORS, rate limiting, structured logging, health checks — explicitly not
+Docker/CI/deployment, which stayed out of scope this round):
+
+| Addition | What it does |
+|---|---|
+| **Conversation memory** (`agents/qa_agent.py`, `agents/orchestrator.py`) | Follow-up questions ("what about my LDL?") resolve against recent chat history instead of landing context-free — the persistence already existed (`get_conversation_history`), it just wasn't being read; this was a pure wiring fix |
+| **OCR for scanned PDFs** (`tools/ocr_provider.py`) | Tesseract fallback when a PDF has no text layer at all, same "thin wrapper + system binary" pattern as Whisper/ffmpeg |
+| **Semantic search** (`tools/embeddings.py`, `agents/qa_agent.py`) | Sentence-transformer embeddings *augment* TF-IDF retrieval (not replace it) — catches vocabulary mismatches TF-IDF structurally can't (e.g. "kidney" vs. "renal"), and spans a patient's entire report history, not just the current one. Stored in a plain Postgres array column, not pgvector (no official Windows binary — see [docs/RAG.md](docs/RAG.md)) |
+| **Voice interaction** (`backend/routers/chat.py`, `frontend/src/components/chat/`) | Record a voice message in chat → transcribed via the existing Whisper pipeline → same planner/orchestrator response; replies can be read aloud via the browser's built-in text-to-speech, no backend TTS dependency |
+| **Doctor/nurse analytics** (`backend/routers/analytics.py`) | Lab-value trend charts (abnormal readings flagged), medicine adherence bar chart, at-a-glance summary tiles — new "Analytics" tab on the patient detail page |
+
 ## What's new in v2
 
 Four things were added on top of the original build, each picked because it's
@@ -244,10 +258,15 @@ Worth knowing before a demo, not worth hiding:
 - The Clinical Timeline Agent needs at least two reports on file (upload or
   a finalized transcript) for the same patient before it has anything to
   compare.
-- PDF extraction requires a text layer; scanned image-only PDFs (no OCR)
-  raise a clear, caught error rather than silently failing.
+- PDF extraction falls back to OCR (`OCR_ENABLED=True`, the default) when
+  there's no text layer; if OCR is disabled or also finds nothing, a
+  clear, caught error is raised rather than silently failing.
 - The mock LLM provider is rule-based/extractive, not a real language
   model — this is a deliberate, documented trade-off, not an oversight.
+- Semantic search is opt-in (`EMBEDDING_PROVIDER=disabled` by default) —
+  the default local model (`sentence-transformers`) pulls in `torch`
+  (shared with the local Whisper path if both are enabled) and downloads
+  a small model on first use.
 - The default local Whisper speech-to-text path (`STT_PROVIDER=whisper_local`)
   pulls in `torch` and needs a system `ffmpeg` binary — the heaviest
   optional dependency in this project by far; switch to
@@ -261,9 +280,12 @@ Worth knowing before a demo, not worth hiding:
 - `backend/worker.py` must be running as its own process for scheduled
   reminders and email dispatch to actually fire — the API process alone
   won't do it (see [Setup](#setup) below).
-- RAG retrieval (TF-IDF) is scoped to one report per question, not a
-  patient's full history — see [docs/RAG.md](docs/RAG.md) for why, and the
-  `pgvector` upgrade path that would change that.
+- TF-IDF retrieval is still scoped to one report per question. Semantic
+  retrieval (when enabled) spans a patient's *entire* report history, but
+  TF-IDF remains the always-on baseline — see [docs/RAG.md](docs/RAG.md).
+- Rate limiting (`AUTH_RATE_LIMIT`) applies only to login/register — this
+  hardening pass was scoped to auth brute-force protection, not general
+  API throttling.
 
 ## Tech stack — and why it differs from the original brief
 
@@ -333,7 +355,9 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 # 2. Install Python dependencies
 pip install -r requirements-dev.txt   # core + FastAPI/Postgres/auth/scheduler + pytest + ruff
 python -m spacy download en_core_web_sm
-pip install -r requirements-transcription.txt   # optional — only for local Whisper (also needs a system ffmpeg binary)
+pip install -r requirements-transcription.txt   # optional — local Whisper (voice chat + transcript-to-report); also needs a system ffmpeg binary
+pip install -r requirements-ocr.txt              # optional — OCR fallback for scanned PDFs; also needs a system Tesseract binary
+pip install -r requirements-semantic-search.txt  # optional — local sentence-transformers embeddings for semantic search
 
 # 3. Provision PostgreSQL and configure environment
 #    (create a database + role however you normally would; any local Postgres works)
@@ -385,7 +409,8 @@ cd frontend && npm run build   # frontend type-checks and builds cleanly
 - [x] **Modules 1–9** — scaffolding, schemas + SQLite, PDF ingestion, medical NER, TF-IDF retrieval, pluggable LLM, planner, task agents + orchestrator, Streamlit UI + CLI
 - [x] **v2** — governance layer, explainability/confidence, Drug Interaction Agent, Clinical Timeline Agent, persistence/rehydration fix, full UI redesign
 - [x] **v3** — FastAPI + PostgreSQL backend, JWT auth + RBAC (doctor/patient/nurse/staff), APScheduler-based daily/monthly reminders + refill alerts, in-app + email notifications, transcript-to-report agent (local/API Whisper → SOAP note → doctor review → finalize), React frontend; legacy Streamlit UI retired in favor of React, `cli.py` kept as a dual-mode (Postgres/SQLite) dev tool
-- [x] 57 legacy tests passing, `ruff check .` clean
+- [x] **v4** — conversation memory for chat follow-ups, OCR fallback for scanned PDFs, semantic search augmenting TF-IDF (embeddings in a plain Postgres column, no pgvector), voice interaction (Whisper input + browser TTS output), doctor/nurse analytics dashboard (lab trends + adherence charts), and a security hardening pass (rate limiting, structured logging, secret enforcement, live health checks, dependency pinning)
+- [x] 60 legacy-path tests passing, `ruff check .` clean, frontend builds clean
 - [ ] Further error-handling polish (multi-page scanned PDFs, malformed reminder phrasing — see Known limitations)
 - [ ] Project report write-up, viva Q&A prep (this README's "Grounded in published research" and "What changed between v2 and v3" sections are written to be lifted straight into that report)
 

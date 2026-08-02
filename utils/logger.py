@@ -10,12 +10,31 @@ everywhere and controlled entirely by `.env`.
 
 from __future__ import annotations
 
+import json
 import logging
 from logging.handlers import RotatingFileHandler
 
 from config import settings
 
 _CONFIGURED = False
+
+
+class _JsonFormatter(logging.Formatter):
+    """One JSON object per line — for production, where logs are piped
+    into a real aggregator rather than read directly off a terminal.
+    Not a general-purpose structured-logging library: just enough fields
+    (timestamp, level, logger name, message, exception) to be useful."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        payload = {
+            "timestamp": self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+        }
+        if record.exc_info:
+            payload["exception"] = self.formatException(record.exc_info)
+        return json.dumps(payload)
 
 
 def _configure_root() -> None:
@@ -31,10 +50,14 @@ def _configure_root() -> None:
     root = logging.getLogger()
     root.setLevel(settings.log_level.upper())
 
-    fmt = logging.Formatter(
-        "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
+    fmt: logging.Formatter
+    if settings.log_format == "json":
+        fmt = _JsonFormatter()
+    else:
+        fmt = logging.Formatter(
+            "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
 
     console = logging.StreamHandler()
     console.setFormatter(fmt)

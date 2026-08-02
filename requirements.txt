@@ -11,23 +11,26 @@ pandas==3.0.2
 numpy==2.4.4
 
 # -- Backend API (v3: React frontend talks to this, not Streamlit) --------
-fastapi>=0.115
-uvicorn[standard]>=0.30
-python-multipart>=0.0.9
-email-validator>=2.2
+fastapi==0.141.1
+uvicorn[standard]==0.52.0
+python-multipart==0.0.32
+email-validator==2.3.0
 
 # -- Postgres + migrations (v3) --------------------------------------------
-sqlalchemy>=2.0
-alembic>=1.13
-psycopg2-binary>=2.9
+sqlalchemy==2.0.51
+alembic==1.18.5
+psycopg2-binary==2.9.12
 
 # -- Auth (v3) ---------------------------------------------------------------
 # NOTE: passlib is unmaintained and incompatible with modern bcrypt
 # releases (bcrypt>=4.1 removed the __about__ attribute passlib probes for,
 # and changed 72-byte-password handling) — hashing is done with `bcrypt`
 # directly instead (see backend/security.py).
-python-jose[cryptography]>=3.3
-bcrypt>=4.0
+python-jose[cryptography]==3.5.0
+bcrypt==5.0.0
 
 # -- Scheduler / notifications (v3) ------------------------------------------
-apscheduler>=3.10
+apscheduler==3.11.3
+
+# -- Security hardening (v4) --------------------------------------------------
+slowapi==0.1.10

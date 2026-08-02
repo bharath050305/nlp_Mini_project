@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     # -- App behaviour --------------------------------------------------------
     debug: bool = False
     log_level: str = "INFO"
+    # "text" (default) is human-readable console output. "json" emits one
+    # JSON object per line — meant for production, where logs are piped
+    # into a real aggregator rather than read directly off a terminal.
+    log_format: Literal["text", "json"] = "text"
 
     # -- NLP --------------------------------------------------------------------
     spacy_model: str = "en_core_web_sm"
@@ -72,7 +76,19 @@ class Settings(BaseSettings):
     # SQLite `Repository` (tools/database.py) is kept, unmodified, for the
     # offline `cli.py --mode sqlite` fallback only.
     database_url: str = "postgresql+psycopg2://mediagent:mediagent@localhost:5432/mediagent"
-    cors_allowed_origin: str = "http://localhost:5173"
+    # Comma-separated for production (multiple real frontend domains);
+    # a single localhost origin is enough for local dev.
+    cors_allowed_origins: str = "http://localhost:5173"
+
+    @property
+    def cors_allowed_origins_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_allowed_origins.split(",") if origin.strip()]
+
+    # -- Rate limiting (v4) -------------------------------------------------------
+    # Applied to POST /api/auth/login and /register to blunt brute-force/
+    # credential-stuffing — the highest-value place to add it given this
+    # hardening pass is scoped to security, not general throttling.
+    auth_rate_limit: str = "5/minute"
 
     # -- Auth (JWT via httpOnly cookie) -----------------------------------------
     # NOTE: the default secret below is intentionally insecure so the app
