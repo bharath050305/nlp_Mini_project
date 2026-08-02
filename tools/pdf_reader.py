@@ -3,7 +3,9 @@ tools/pdf_reader.py
 
 PDF text extraction using PyMuPDF (`fitz`). Handles the error cases the
 master prompt calls out explicitly: invalid/corrupt PDFs, empty PDFs,
-and oversized files.
+and oversized files. Falls back to OCR (`tools/ocr_provider.py`) when a
+PDF has no text layer at all — a scanned/image-only report — rather than
+raising immediately.
 """
 
 from __future__ import annotations
@@ -57,9 +59,14 @@ def extract_text_from_pdf(file_path: str | Path) -> str:
     cleaned = clean_extracted_text(raw_text)
 
     if not cleaned:
+        if settings.ocr_enabled:
+            logger.info("No text layer in %s — falling back to OCR.", path.name)
+            from tools.ocr_provider import extract_text_via_ocr
+
+            return extract_text_via_ocr(path)
         raise PDFProcessingError(
             "No extractable text found. This looks like a scanned image "
-            "PDF with no text layer — OCR is out of scope for this build."
+            "PDF with no text layer, and OCR is disabled (set OCR_ENABLED=True in .env)."
         )
 
     logger.info("Extracted %d chars of text from %s (%d pages)", len(cleaned), path.name, page_count)

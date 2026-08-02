@@ -64,7 +64,25 @@
       "PowerShell(Get-Process -Id 8632, 22916 -ErrorAction SilentlyContinue)",
       "Read(//c/Program Files/PostgreSQL/18/share/extension/**)",
       "Read(//c/Program Files/PostgreSQL/18/lib/**)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(python -c \"import pytesseract\")",
+      "Bash(where tesseract *)",
+      "Bash(pip show *)",
+      "Bash(where choco *)",
+      "Bash(where winget *)",
+      "Bash(winget search *)",
+      "Bash(winget install *)",
+      "Read(//c/Program Files/Tesseract-OCR/**)",
+      "Bash(python -c \"import PIL; print\\(PIL.__version__\\)\")",
+      "Bash(python -m pytest tests/test_pdf_reader.py -q)",
+      "Bash(python -m pytest tests/test_pdf_reader.py -v)",
+      "Bash(curl -s -c /tmp/patient_ocr.cookies -X POST http://127.0.0.1:8000/api/auth/login -H \"Content-Type: application/json\" -d '{\"email\":\"patient1@test.com\",\"password\":\"testpass123\"}' -o /dev/null -w \"login: %{http_code}\\\\n\")",
+      "Bash(curl -s -b /tmp/patient_ocr.cookies -F \"file=@/tmp/ocr_smoke.pdf;type=application/pdf\" http://127.0.0.1:8000/api/patients/5/reports/upload)",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue | Select-Object State\")",
+      "Bash(cat /tmp/uvicorn_v4.log 2>&1)",
+      "Bash(curl -s -c 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/patient_ocr.cookies' -X POST http://127.0.0.1:8000/api/auth/login -H 'Content-Type: application/json' -d '{\"email\":\"patient1@test.com\",\"password\":\"testpass123\"}' -o /dev/null -w 'login: %{http_code}\\\\n')",
+      "Bash(curl -s -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/patient_ocr.cookies' -F 'file=@C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/ocr_smoke.pdf;type=application/pdf' http://127.0.0.1:8000/api/patients/5/reports/upload)",
+      "Bash(curl -s -b 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/patient_ocr.cookies' http://127.0.0.1:8000/api/patients/5/reports/7)"
     ]
   }
 }

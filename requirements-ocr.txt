@@ -1,0 +1,14 @@
+# Optional — only needed if OCR_ENABLED=True in .env (the default). The
+# app's PDF ingestion runs fully without this for text-layer PDFs; OCR is
+# only invoked as a fallback for scanned/image-only reports.
+#
+# NOTE: pytesseract also requires a system Tesseract binary that pip
+# cannot install for you:
+#   Windows:       winget install --id UB-Mannheim.TesseractOCR
+#                  (or download from https://github.com/UB-Mannheim/tesseract)
+#   macOS:         brew install tesseract
+#   Debian/Ubuntu: sudo apt install tesseract-ocr
+# If tesseract isn't on your system PATH after installing, set
+# TESSERACT_CMD in .env to its full executable path.
+pytesseract>=0.3
+Pillow>=10.0

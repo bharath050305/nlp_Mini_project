@@ -46,6 +46,13 @@ class Settings(BaseSettings):
     spacy_model: str = "en_core_web_sm"
     max_pdf_size_mb: int = 15
 
+    # -- OCR fallback for scanned/image-only PDFs (v4) --------------------------
+    # Tesseract via pytesseract — a thin wrapper + a system Tesseract binary,
+    # the same pattern as ffmpeg-for-Whisper. Only invoked when the normal
+    # text-layer extraction finds nothing.
+    ocr_enabled: bool = True
+    tesseract_cmd: str | None = None  # override if tesseract.exe isn't on PATH
+
     # -- Filesystem paths -----------------------------------------------------
     database_path: Path = BASE_DIR / "database" / "mediagent.db"
     upload_dir: Path = BASE_DIR / "uploads"
