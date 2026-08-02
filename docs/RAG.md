@@ -89,30 +89,59 @@ exposes the same `index()`/`query()` shape a real embedding backend would,
 so swapping the implementation later is a one-file change, not a rewrite of
 `qa_agent.py`.
 
-## Upgrade path now that Postgres is in play
+## v4: semantic search (embeddings), built as an augmentation
 
-Now that this project has a real relational database instead of one SQLite
-file, the natural next step for the RAG system is
-**[pgvector](https://github.com/pgvector/pgvector)** — a Postgres extension
-that adds a vector column type and approximate-nearest-neighbor indexing
-directly in the same database already storing reports, reminders, and
-users. Two things it would unlock that the current per-request TF-IDF index
-structurally can't:
+The section above described this as a future upgrade; it's now built.
+`agents/qa_agent.answer_question()` runs TF-IDF retrieval exactly as
+before, **and**, when enabled, also runs semantic retrieval over
+embeddings stored in Postgres — the two result sets are unioned before
+being handed to the LLM, and the reported confidence takes the stronger
+of the two scores. This is deliberately an **augmentation, not a
+replacement**: TF-IDF still runs unconditionally (zero setup, always
+available), and semantic search only adds to it when configured.
 
-1. **Cross-report retrieval.** Today, `answer_question()` indexes exactly
-   one report per call — a question is answered from *the current report*,
-   not the patient's full history. With embeddings stored in Postgres, a
-   query could retrieve the most relevant chunks across *every* report a
-   patient has ever uploaded, which is a meaningfully different (and more
-   useful) capability, especially combined with the Clinical Timeline
-   Agent's existing cross-report reasoning.
-2. **No re-indexing per request.** Chunks would be embedded once at upload
-   time (e.g. in the same place `Orchestrator.load_report` already persists
-   the report) and queried directly via SQL, instead of rebuilding a TF-IDF
-   matrix from scratch on every question.
+**Why not pgvector.** The obvious Postgres-native choice for storing and
+querying embeddings is [pgvector](https://github.com/pgvector/pgvector) —
+but it isn't installed on this project's Postgres instance, and has no
+official Windows binary (only an unofficial, third-party-compiled one).
+Rather than load unofficial native code into the database server, chunk
+embeddings are stored in a plain `report_chunk_embeddings` table
+(`backend/db_models.py`) with the vector as a native Postgres `float8[]`
+column (SQLAlchemy `ARRAY(Float)`) — no extension required. Retrieval
+(`agents/qa_agent._semantic_retrieve`) fetches a patient's stored
+embeddings and computes cosine similarity in Python/numpy. At this
+project's actual scale — one patient's chunks, at most a few hundred, not
+millions of vectors across a whole product — brute-force similarity is
+fully adequate; pgvector's real advantage (fast approximate search over
+huge datasets) doesn't apply here.
 
-This is flagged as a **follow-up, not built in this iteration** — the
-scope here was the multi-role platform (auth, scheduling, transcripts), and
-swapping the retrieval backend is a genuinely separable piece of work that
-deserves its own evaluation (embedding model choice, migration of existing
-report text, index tuning) rather than being bundled in.
+**What this unlocks that per-request TF-IDF structurally couldn't:**
+
+1. **Cross-report retrieval.** `PgRepository.get_chunk_embeddings_for_patient()`
+   returns embeddings across *every* report a patient has on file, not
+   just the one currently loaded into session — so a question can now be
+   answered by pulling context from an older report, not only the most
+   recent upload.
+2. **No re-indexing per request.** Chunks are embedded once, at upload
+   time (`backend/routers/reports.py`'s upload endpoint) or transcript
+   finalize time (`backend/routers/transcripts.py`), via
+   `backend/services/embedding_service.embed_and_store_report()` — not
+   rebuilt from scratch on every question the way the TF-IDF index still
+   is (TF-IDF is cheap enough per-request that this wasn't worth
+   optimizing away for it specifically).
+3. **Genuine synonym/vocabulary matching.** TF-IDF is lexical: a report
+   that says "renal function" won't match a question about "kidney
+   function" — zero shared words, zero score. Embeddings capture meaning,
+   not just vocabulary; verified live during development (`renal function`
+   vs. `kidney function`: cosine similarity 0.96 via the raw model, and
+   the full pipeline correctly answered a "kidney function" question from
+   a report that only ever said "renal").
+
+**Backend**: `tools/embeddings.py` (`EmbeddingProvider` ABC + factory,
+mirroring `llm/base.py`'s pattern exactly) — default
+`sentence-transformers` running the small `all-MiniLM-L6-v2` model fully
+locally (one-time ~80MB download, no API key), or `openai` (reuses
+`openai_api_key`) as an alternative. Default is `disabled`: a fresh
+install still runs on TF-IDF alone with zero setup, matching this
+project's consistent "offline by default, opt into heavier backends"
+pattern for the LLM and speech-to-text layers too.

@@ -223,7 +223,13 @@ class Orchestrator:
             # of that method) — fetching them here naturally excludes the
             # in-flight question, no special-casing needed.
             history = self.repo.get_conversation_history(self.session.patient_id, limit=5)
-            result = qa_agent.answer_question(self.session.report_text, question, history=history)
+            result = qa_agent.answer_question(
+                self.session.report_text,
+                question,
+                history=history,
+                repo=self.repo,
+                patient_id=self.session.patient_id,
+            )
             self.session.qa_history.append(result)
             return result.answer
 

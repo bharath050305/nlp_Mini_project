@@ -1,0 +1,12 @@
+# Optional — only needed if EMBEDDING_PROVIDER=sentence_transformers in
+# .env. The app's RAG/QA loop runs fully on TF-IDF without this
+# (EMBEDDING_PROVIDER=disabled, the default); embeddings only ever
+# *augment* TF-IDF retrieval, never replace it — see docs/RAG.md.
+#
+# NOTE: this pulls in PyTorch (a large download) — the same shared
+# dependency as requirements-transcription.txt's local Whisper. If you've
+# already installed one, the other reuses it.
+#
+# First use downloads the embedding model (~80MB for the default
+# all-MiniLM-L6-v2) from Hugging Face and caches it locally.
+sentence-transformers>=3.0

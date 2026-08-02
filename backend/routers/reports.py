@@ -22,6 +22,7 @@ from backend.db import get_db
 from backend.deps import require_patient_access
 from backend.pg_repository import PgRepository
 from backend.schemas_api import ReportDetailOut, ReportOut
+from backend.services.embedding_service import embed_and_store_report
 from schemas import TimelineEvent
 from tools.pdf_reader import extract_text_from_bytes
 from utils.exceptions import MediAgentError
@@ -49,6 +50,8 @@ async def upload_report(
     orch.load_report(text, file.filename)
 
     latest = repo.get_latest_report(patient.id)
+    embed_and_store_report(repo, latest.id, text)
+
     return ReportOut(
         id=latest.id,
         patient_id=latest.patient_id,

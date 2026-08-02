@@ -32,6 +32,7 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.db import Base
@@ -244,6 +245,25 @@ class SoapNote(Base):
     finalized_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     finalized_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ReportChunkEmbedding(Base):
+    """One row per chunk per report, embedding stored as a plain Postgres
+    float8[] column — no pgvector needed (see docs/RAG.md for why: it
+    isn't installed here and has no official Windows binary; at this
+    project's scale, brute-force cosine similarity in Python over a
+    patient's chunks is fully adequate). Spans a patient's *entire*
+    report history when queried via patient_id through the reports join,
+    not just the latest report — the exact upgrade docs/RAG.md flags."""
+
+    __tablename__ = "report_chunk_embeddings"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    report_id: Mapped[int] = mapped_column(ForeignKey("reports.id"), nullable=False)
+    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    chunk_text: Mapped[str] = mapped_column(Text, nullable=False)
+    embedding: Mapped[list[float]] = mapped_column(ARRAY(Float), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class ConversationTurn(Base):

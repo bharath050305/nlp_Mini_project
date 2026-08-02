@@ -533,6 +533,32 @@ class PgRepository:
         self.db.refresh(row)
         return row
 
+    # -- report chunk embeddings (semantic search, v4) --------------------------
+    def replace_chunk_embeddings(self, report_id: int, chunks: list[tuple[str, list[float]]]) -> None:
+        """Delete any existing embeddings for this report and insert the
+        given (chunk_text, embedding) pairs — called once per report at
+        upload/finalize time, not per question."""
+        self.db.query(db_models.ReportChunkEmbedding).filter_by(report_id=report_id).delete()
+        for index, (chunk_text_, embedding) in enumerate(chunks):
+            self.db.add(
+                db_models.ReportChunkEmbedding(
+                    report_id=report_id, chunk_index=index, chunk_text=chunk_text_, embedding=embedding
+                )
+            )
+        self.db.commit()
+
+    def get_chunk_embeddings_for_patient(self, patient_id: int) -> list[tuple[str, list[float]]]:
+        """All embedded chunks across every report this patient has on
+        file — spans full history, not just the latest report (see
+        docs/RAG.md's 'upgrade path' section)."""
+        rows = (
+            self.db.query(db_models.ReportChunkEmbedding)
+            .join(db_models.Report, db_models.Report.id == db_models.ReportChunkEmbedding.report_id)
+            .filter(db_models.Report.patient_id == patient_id)
+            .all()
+        )
+        return [(row.chunk_text, row.embedding) for row in rows]
+
     def get_soap_note_by_transcript(self, transcript_id: int) -> db_models.SoapNote | None:
         return self.db.execute(
             select(db_models.SoapNote).filter_by(transcript_id=transcript_id)

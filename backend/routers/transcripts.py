@@ -30,6 +30,7 @@ from backend.db import get_db
 from backend.deps import require_patient_access, require_role
 from backend.pg_repository import PgRepository
 from backend.schemas_api import SoapNoteOut, SoapNoteUpdateRequest, TranscriptOut
+from backend.services.embedding_service import embed_and_store_report
 from backend.services.stt_service import process_transcript
 from config import settings
 from schemas import Report
@@ -171,4 +172,5 @@ def finalize_soap_note(
         linked_report_id=pg_repo_report.id,
         entities_json=entities.model_dump_json(),
     )
+    embed_and_store_report(repo, pg_repo_report.id, combined_text)
     return finalized

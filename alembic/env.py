@@ -26,6 +26,14 @@ config.set_main_option("sqlalchemy.url", settings.database_url)
 
 target_metadata = db_models.Base.metadata
 
+# apscheduler_jobs is created/owned by APScheduler's SQLAlchemyJobStore at
+# runtime (backend/services/scheduler_service.py), not by our SQLAlchemy
+# models — exclude it from autogenerate diffs so future `alembic revision
+# --autogenerate` runs never propose dropping it (which would destroy
+# every scheduled reminder job).
+def _include_object(object, name, type_, reflected, compare_to):
+    return not (type_ == "table" and name == "apscheduler_jobs")
+
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
@@ -50,6 +58,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=_include_object,
     )
 
     with context.begin_transaction():
@@ -71,7 +80,9 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection,
+            target_metadata=target_metadata,
+            include_object=_include_object,
         )
 
         with context.begin_transaction():

@@ -102,6 +102,15 @@ class Settings(BaseSettings):
     stt_provider: Literal["whisper_local", "openai_whisper_api"] = "whisper_local"
     whisper_model_size: str = "base"
 
+    # -- Semantic search / embeddings (v4) ---------------------------------------
+    # "disabled" (default) — TF-IDF only, zero setup, matching this
+    # project's usual offline-first-by-default pattern. "sentence_transformers"
+    # downloads a small local embedding model once (~80MB), no API key,
+    # augments (not replaces) TF-IDF retrieval with semantic matches — see
+    # docs/RAG.md. "openai" reuses openai_api_key instead of a local model.
+    embedding_provider: Literal["disabled", "sentence_transformers", "openai"] = "disabled"
+    embedding_model_name: str = "all-MiniLM-L6-v2"
+
     def ensure_directories(self) -> None:
         """Create any runtime directories that don't exist yet.
 
