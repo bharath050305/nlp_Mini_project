@@ -29,7 +29,11 @@
       "Bash(python cli.py --mode sqlite)",
       "Bash(python -m pytest -q)",
       "Bash(ruff check *)",
-      "Bash(python -c \"from backend.main import app; print\\('backend imports OK, routes:', len\\(app.openapi\\(\\)['paths']\\)\\)\")"
+      "Bash(python -c \"from backend.main import app; print\\('backend imports OK, routes:', len\\(app.openapi\\(\\)['paths']\\)\\)\")",
+      "Bash(npm --version)",
+      "Bash(npm -v)",
+      "Bash(npm create *)",
+      "Bash(npm install *)"
     ]
   }
 }
