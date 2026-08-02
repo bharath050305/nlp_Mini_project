@@ -200,8 +200,11 @@ export default function AssignmentManagementPage() {
             <h2 className="text-sm font-semibold text-slate-700">All assignments</h2>
           </CardHeader>
           <CardBody>
+            {assignmentsLoading && allAssignments.length === 0 ? (
+              <p className="py-6 text-center text-sm text-slate-400">Loading assignments...</p>
+            ) : (
             <Table
-              rows={assignmentsQuery.data ?? []}
+              rows={allAssignments}
               rowKey={(a) => a.id}
               emptyMessage="No assignments yet."
               columns={[
@@ -239,6 +242,7 @@ export default function AssignmentManagementPage() {
                 },
               ]}
             />
+            )}
           </CardBody>
         </Card>
       </div>
