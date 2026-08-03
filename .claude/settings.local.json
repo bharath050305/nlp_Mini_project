@@ -108,7 +108,15 @@
       "Bash(powershell -Command \"Stop-Service -Name postgresql-x64-18 -Force\")",
       "Bash(curl -s -o /dev/null -w \"health with DB stopped: %{http_code}\\\\n\" http://127.0.0.1:8000/api/health)",
       "Bash(powershell -Command \"Start-Service -Name postgresql-x64-18\")",
-      "Bash(curl -s -o /dev/null -w \"health after DB restarted: %{http_code}\\\\n\" http://127.0.0.1:8000/api/health)"
+      "Bash(curl -s -o /dev/null -w \"health after DB restarted: %{http_code}\\\\n\" http://127.0.0.1:8000/api/health)",
+      "Bash(gh auth *)",
+      "Bash(git config *)",
+      "Bash(git ls-remote *)",
+      "Bash(curl -s \"https://api.github.com/repos/bharath050305/nlp_Mini_project/contents/\")",
+      "Bash(curl -s \"https://api.github.com/repos/bharath050305/nlp_Mini_project\")",
+      "Bash(curl -s -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\" \"https://api.github.com/repos/bharath050305/nlp_Mini_project\")",
+      "Bash(git clone *)",
+      "Bash(find 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/existing_repo_check' -maxdepth 2 -not -path */.git*)"
     ]
   }
 }
