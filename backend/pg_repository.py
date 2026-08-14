@@ -573,3 +573,54 @@ class PgRepository:
         self.db.commit()
         self.db.refresh(row)
         return row
+
+    # -- human-in-the-loop approval queue (v5) -----------------------------
+    def create_approval(
+        self, *, patient_id: int, requested_by_user_id: int | None, type: str, summary: str, detail_json: str = ""
+    ) -> db_models.AgentApproval:
+        """Called by agents/supervisor_agent.py when a chat turn's result
+        needs clinician review. Legacy-sqlite callers never reach this —
+        it's only invoked when `hasattr(repo, "create_approval")`."""
+        row = db_models.AgentApproval(
+            patient_id=patient_id,
+            requested_by_user_id=requested_by_user_id,
+            type=type,
+            summary=summary,
+            detail_json=detail_json,
+        )
+        self.db.add(row)
+        self.db.commit()
+        self.db.refresh(row)
+        return row
+
+    def list_pending_approvals_for_provider(self, staff_user_id: int, role: str) -> list[db_models.AgentApproval]:
+        """Pending approvals across every patient this doctor/nurse is
+        actively assigned to — a worklist, not a per-patient view."""
+        return (
+            self.db.query(db_models.AgentApproval)
+            .join(db_models.CareAssignment, db_models.CareAssignment.patient_id == db_models.AgentApproval.patient_id)
+            .filter(
+                db_models.CareAssignment.staff_user_id == staff_user_id,
+                db_models.CareAssignment.role_at_assignment == role,
+                db_models.CareAssignment.active.is_(True),
+                db_models.AgentApproval.status == "pending",
+            )
+            .order_by(db_models.AgentApproval.created_at.desc())
+            .all()
+        )
+
+    def resolve_approval(
+        self, approval_id: int, *, reviewer_id: int, decision: str, note: str | None = None
+    ) -> db_models.AgentApproval | None:
+        from datetime import datetime
+
+        row = self.db.get(db_models.AgentApproval, approval_id)
+        if row is None:
+            return None
+        row.status = decision
+        row.reviewed_by = reviewer_id
+        row.reviewed_at = datetime.now(UTC)
+        row.review_note = note
+        self.db.commit()
+        self.db.refresh(row)
+        return row

@@ -277,3 +277,65 @@ class AnalyticsSummary(BaseModel):
     abnormal_trend: AbnormalTrend
     active_reminders: int
     doses_missed_this_week: int
+
+
+# --------------------------------------------------------------------------
+# Human-in-the-loop approval queue (v5)
+# --------------------------------------------------------------------------
+ApprovalType = Literal["triage", "verification", "interaction"]
+ApprovalStatus = Literal["pending", "approved", "rejected"]
+ApprovalDecision = Literal["approved", "rejected"]
+
+
+class ApprovalOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    patient_id: int
+    type: ApprovalType
+    summary: str
+    detail_json: str
+    status: ApprovalStatus
+    reviewed_by: int | None
+    reviewed_at: datetime | None
+    review_note: str | None
+    created_at: datetime
+
+
+class ApprovalDecisionRequest(BaseModel):
+    decision: ApprovalDecision
+    note: str | None = None
+
+
+# --------------------------------------------------------------------------
+# Patient Digital Twin (v5) — consolidated read-model, no new reasoning
+# --------------------------------------------------------------------------
+class DigitalTwin(BaseModel):
+    patient_id: int
+    patient_name: str
+    latest_report_filename: str | None
+    latest_report_date: datetime | None
+    total_reports: int
+    diseases: list[str]
+    medicines: list[str]
+    symptoms: list[str]
+    triage_level: str
+    triage_reasons: list[str]
+    active_reminders: int
+    overall_adherence_pct: float
+    doses_missed_this_week: int
+    timeline_event_count: int
+
+
+# --------------------------------------------------------------------------
+# Agent Registry (v5) — declarative capability listing, for explainability.
+# NOT a runtime-enforced permission sandbox (see agents/registry.py).
+# --------------------------------------------------------------------------
+class AgentCapabilityOut(BaseModel):
+    name: str
+    module: str
+    description: str
+    reads: list[str]
+    writes: list[str]
+    risk: str
+    autonomy: str

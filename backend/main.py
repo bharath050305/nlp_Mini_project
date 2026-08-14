@@ -21,6 +21,7 @@ from backend.db import engine
 from backend.rate_limit import limiter
 from backend.routers import (
     analytics,
+    approvals,
     assignments,
     auth,
     chat,
@@ -84,6 +85,7 @@ for router in (
     notifications.router,
     transcripts.router,
     analytics.router,
+    approvals.router,
 ):
     app.include_router(router)
 

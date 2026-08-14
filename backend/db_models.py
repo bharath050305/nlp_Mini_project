@@ -266,6 +266,35 @@ class ReportChunkEmbedding(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class AgentApproval(Base):
+    """Human-in-the-loop queue (v5): the Supervisor agent
+    (agents/supervisor_agent.py) writes a row here whenever it decides a
+    chat turn's result needs clinician review — a CRITICAL/HIGH triage
+    result, an unsupported (Critic-flagged) answer, or a major drug
+    interaction. Doctors/nurses assigned to the patient resolve it via
+    backend/routers/approvals.py. The original AI output is preserved in
+    detail_json regardless of the decision, giving an audit trail of what
+    was flagged, why, and what a human decided about it."""
+
+    __tablename__ = "agent_approvals"
+    __table_args__ = (
+        CheckConstraint("type IN ('triage', 'verification', 'interaction')", name="ck_approval_type"),
+        CheckConstraint("status IN ('pending', 'approved', 'rejected')", name="ck_approval_status"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    patient_id: Mapped[int] = mapped_column(ForeignKey("patients.id"), nullable=False)
+    requested_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    type: Mapped[str] = mapped_column(String, nullable=False)
+    summary: Mapped[str] = mapped_column(Text, nullable=False)
+    detail_json: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    status: Mapped[str] = mapped_column(String, default="pending", nullable=False)
+    reviewed_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    review_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class ConversationTurn(Base):
     __tablename__ = "conversation_history"
 

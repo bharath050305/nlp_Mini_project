@@ -1,11 +1,14 @@
 """
 backend/routers/chat.py
 
-The planner/executor chat endpoint. Builds a fresh `Orchestrator` per
-request — safe because `Orchestrator.__init__` already rehydrates all
-session state from the DB (see agents/orchestrator.py's module docstring)
-— so there is no server-side session to keep in sync across requests or
-worker processes.
+The chat endpoint. Calls `agents/supervisor_agent.handle_request()`
+(v5) rather than constructing an `Orchestrator` directly — the
+Supervisor runs the exact same Planner/Orchestrator pipeline underneath,
+then inspects the combined triage/critic/interaction signals to decide
+whether the result needs clinician review (see that module's docstring).
+Safe to build fresh per request either way, since `Orchestrator.__init__`
+already rehydrates all session state from the DB — no server-side
+session to keep in sync across requests or worker processes.
 
 Nurses are excluded per the RBAC matrix: chat/QA is a patient+doctor
 capability, not a nursing one (nurses get reminder/dose-log access only).
@@ -13,12 +16,11 @@ capability, not a nursing one (nurses get reminder/dose-log access only).
 Voice input (v4): POST .../chat/voice reuses the exact same STT pipeline
 built for transcript-to-report (tools/speech_to_text.py) to transcribe a
 recorded message, then feeds the transcribed text through the identical
-Orchestrator.handle_request() path as text chat — same RBAC, same
-response shape. AgentRunResult.plan.user_request already carries the
-transcribed text back to the caller, so no new response schema is needed
-for the frontend to show "you said: ...". Spoken *output* is handled
-entirely client-side via the browser's SpeechSynthesis API — no backend
-TTS involved.
+Supervisor path as text chat — same RBAC, same response shape.
+AgentRunResult.plan.user_request already carries the transcribed text
+back to the caller, so no new response schema is needed for the frontend
+to show "you said: ...". Spoken *output* is handled entirely client-side
+via the browser's SpeechSynthesis API — no backend TTS involved.
 """
 
 from __future__ import annotations
@@ -28,7 +30,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
-from agents.orchestrator import Orchestrator
+from agents import supervisor_agent
 from backend.db import get_db
 from backend.deps import get_current_user, require_patient_access
 from backend.pg_repository import PgRepository
@@ -57,8 +59,7 @@ def chat(
 ) -> AgentRunResult:
     _forbid_nurse(current_user)
     repo = PgRepository(db)
-    orch = Orchestrator(repo, patient.id)
-    return orch.handle_request(payload.message)
+    return supervisor_agent.handle_request(repo, patient.id, payload.message, requested_by_user_id=current_user.id)
 
 
 @router.post("/voice", response_model=AgentRunResult)
@@ -80,5 +81,6 @@ async def chat_voice(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
 
     repo = PgRepository(db)
-    orch = Orchestrator(repo, patient.id)
-    return orch.handle_request(transcribed_text)
+    return supervisor_agent.handle_request(
+        repo, patient.id, transcribed_text, requested_by_user_id=current_user.id
+    )
