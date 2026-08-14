@@ -48,6 +48,12 @@ export function RiskBadge({ risk }: { risk: RiskTier | null }) {
   return <Badge tone={tone}>{risk}</Badge>;
 }
 
+export function TriageBadge({ level }: { level: "low" | "medium" | "high" | "critical" | string }) {
+  const tone: Tone =
+    level === "critical" ? "danger" : level === "high" ? "danger" : level === "medium" ? "warning" : "success";
+  return <Badge tone={tone}>{level.toUpperCase()}</Badge>;
+}
+
 export function StatusBadge({ status }: { status: string }) {
   const map: Record<string, Tone> = {
     done: "success",

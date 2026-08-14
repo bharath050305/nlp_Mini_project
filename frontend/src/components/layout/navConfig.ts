@@ -14,15 +14,18 @@ export const navByRole: Record<Role, NavItem[]> = {
   doctor: [
     { label: "My Patients", to: "/doctor", end: true },
     { label: "Upload Consultation", to: "/doctor/transcripts/upload" },
+    { label: "Approvals", to: "/approvals" },
     { label: "Notifications", to: "/notifications" },
   ],
   nurse: [
     { label: "My Patients", to: "/nurse", end: true },
+    { label: "Approvals", to: "/approvals" },
     { label: "Notifications", to: "/notifications" },
   ],
   staff: [
     { label: "Users", to: "/staff", end: true },
     { label: "Assignments", to: "/staff/assignments" },
+    { label: "Agent Registry", to: "/staff/agents" },
     { label: "Notifications", to: "/notifications" },
   ],
 };

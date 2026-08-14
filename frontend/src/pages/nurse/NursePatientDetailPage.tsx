@@ -13,6 +13,7 @@ import InteractionsPanel from "@/components/reports/InteractionsPanel";
 import ReminderList from "@/components/reminders/ReminderList";
 import TimelineView from "@/components/timeline/TimelineView";
 import AnalyticsPanel from "@/components/analytics/AnalyticsPanel";
+import DigitalTwinPanel from "@/components/twin/DigitalTwinPanel";
 
 export default function NursePatientDetailPage() {
   const { patientId } = useParams<{ patientId: string }>();
@@ -55,6 +56,11 @@ export default function NursePatientDetailPage() {
 
       <Tabs
         tabs={[
+          {
+            key: "digital-twin",
+            label: "Digital Twin",
+            content: <DigitalTwinPanel patientId={patient.id} />,
+          },
           {
             key: "reminders",
             label: "Reminders",

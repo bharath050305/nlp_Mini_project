@@ -12,7 +12,9 @@ import NursePatientListPage from "@/pages/nurse/NursePatientListPage";
 import NursePatientDetailPage from "@/pages/nurse/NursePatientDetailPage";
 import StaffUserManagementPage from "@/pages/staff/StaffUserManagementPage";
 import AssignmentManagementPage from "@/pages/staff/AssignmentManagementPage";
+import AgentRegistryPage from "@/pages/staff/AgentRegistryPage";
 import NotificationsPage from "@/pages/shared/NotificationsPage";
+import ApprovalsPage from "@/pages/shared/ApprovalsPage";
 import RootRedirect from "@/pages/RootRedirect";
 
 export const router = createBrowserRouter([
@@ -47,10 +49,15 @@ export const router = createBrowserRouter([
             ],
           },
           {
+            element: <RoleGuard allow={["doctor", "nurse"]} />,
+            children: [{ path: "/approvals", element: <ApprovalsPage /> }],
+          },
+          {
             element: <RoleGuard allow={["staff"]} />,
             children: [
               { path: "/staff", element: <StaffUserManagementPage /> },
               { path: "/staff/assignments", element: <AssignmentManagementPage /> },
+              { path: "/staff/agents", element: <AgentRegistryPage /> },
             ],
           },
         ],

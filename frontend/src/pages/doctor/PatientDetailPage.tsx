@@ -16,6 +16,7 @@ import ReminderList from "@/components/reminders/ReminderList";
 import TimelineView from "@/components/timeline/TimelineView";
 import ChatWindow from "@/components/chat/ChatWindow";
 import AnalyticsPanel from "@/components/analytics/AnalyticsPanel";
+import DigitalTwinPanel from "@/components/twin/DigitalTwinPanel";
 import { StatusBadge } from "@/components/ui/Badge";
 import EmptyState from "@/components/ui/EmptyState";
 import { formatDateTime } from "@/utils/format";
@@ -67,6 +68,11 @@ export default function PatientDetailPage() {
       <Tabs
         tabs={[
           { key: "chat", label: "Chat", content: <ChatWindow patientId={patient.id} /> },
+          {
+            key: "digital-twin",
+            label: "Digital Twin",
+            content: <DigitalTwinPanel patientId={patient.id} />,
+          },
           { key: "reports", label: "Reports", content: <ReportsTab patientId={patient.id} /> },
           {
             key: "analytics",

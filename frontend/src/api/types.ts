@@ -117,6 +117,17 @@ export interface DrugInteractionWarning {
   note: string;
 }
 
+export interface TriageResult {
+  level: "low" | "medium" | "high" | "critical";
+  reasons: string[];
+}
+
+export interface CriticResult {
+  supported: boolean;
+  unsupported_claims: string[];
+  note: string;
+}
+
 export interface AgentRunResult {
   final_response: string;
   plan: Plan;
@@ -128,6 +139,11 @@ export interface AgentRunResult {
   report_file_path: string | null;
   interaction_warnings: DrugInteractionWarning[];
   timeline: TimelineEvent[];
+  // v5: Supervisor / Triage / Critic layer
+  triage: TriageResult | null;
+  verification: CriticResult | null;
+  requires_human_review: boolean;
+  escalation_reason: string | null;
 }
 
 export type ScheduleType = "daily" | "monthly" | "unscheduled";
@@ -251,4 +267,50 @@ export interface AnalyticsSummary {
   abnormal_trend: AbnormalTrend;
   active_reminders: number;
   doses_missed_this_week: number;
+}
+
+// -- Human-in-the-loop approvals (v5) -----------------------------------------
+export type ApprovalType = "triage" | "verification" | "interaction";
+export type ApprovalStatus = "pending" | "approved" | "rejected";
+
+export interface ApprovalOut {
+  id: number;
+  patient_id: number;
+  type: ApprovalType;
+  summary: string;
+  detail_json: string;
+  status: ApprovalStatus;
+  reviewed_by: number | null;
+  reviewed_at: string | null;
+  review_note: string | null;
+  created_at: string;
+}
+
+// -- Patient Digital Twin (v5) -------------------------------------------------
+export interface DigitalTwin {
+  patient_id: number;
+  patient_name: string;
+  latest_report_filename: string | null;
+  latest_report_date: string | null;
+  total_reports: number;
+  diseases: string[];
+  medicines: string[];
+  symptoms: string[];
+  triage_level: "low" | "medium" | "high" | "critical";
+  triage_reasons: string[];
+  active_reminders: number;
+  overall_adherence_pct: number;
+  doses_missed_this_week: number;
+  timeline_event_count: number;
+}
+
+// -- Agent Registry (v5) --------------------------------------------------------
+export interface AgentCapabilityOut {
+  name: string;
+  module: string;
+  description: string;
+  reads: string[];
+  writes: string[];
+  risk: string;
+  autonomy: string;
 }
