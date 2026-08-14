@@ -43,6 +43,12 @@ from schemas import AutonomyLevel, RiskTier, TaskType
 #                                 still suggest-only and always deflects to
 #                                 "confirm with your pharmacist."
 # VIEW_TIMELINE         -> A0/R1  Read-only synthesis across past reports.
+# ASSESS_RISK (v5)       -> A0/R2  Rule-based triage classification — never
+#                                 writes anything itself, but a HIGH/CRITICAL
+#                                 result is exactly the kind of clinically
+#                                 significant judgment call R2 exists for;
+#                                 the Supervisor (not this agent) decides
+#                                 whether that escalates to a human.
 GOVERNANCE_TABLE: dict[TaskType, tuple[AutonomyLevel, RiskTier]] = {
     TaskType.READ_REPORT: (AutonomyLevel.A0_SUGGEST_ONLY, RiskTier.R0_ADMINISTRATIVE),
     TaskType.SUMMARIZE: (AutonomyLevel.A0_SUGGEST_ONLY, RiskTier.R1_PATIENT_INFORMATIONAL),
@@ -52,6 +58,7 @@ GOVERNANCE_TABLE: dict[TaskType, tuple[AutonomyLevel, RiskTier]] = {
     TaskType.GENERATE_REPORT: (AutonomyLevel.A1_DRAFT_FOR_SIGNOFF, RiskTier.R1_PATIENT_INFORMATIONAL),
     TaskType.CHECK_INTERACTIONS: (AutonomyLevel.A0_SUGGEST_ONLY, RiskTier.R2_CLINICAL_DECISION_SUPPORT),
     TaskType.VIEW_TIMELINE: (AutonomyLevel.A0_SUGGEST_ONLY, RiskTier.R1_PATIENT_INFORMATIONAL),
+    TaskType.ASSESS_RISK: (AutonomyLevel.A0_SUGGEST_ONLY, RiskTier.R2_CLINICAL_DECISION_SUPPORT),
 }
 
 _OVERSIGHT_NOTES: dict[AutonomyLevel, str] = {

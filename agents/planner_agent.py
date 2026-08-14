@@ -143,5 +143,12 @@ def create_plan(user_request: str, has_report: bool) -> Plan:
         elif task_type == TaskType.VIEW_TIMELINE:
             tasks.append(Task(task_type=task_type, description="Build a timeline across all uploaded reports"))
 
+    # ASSESS_RISK (v5) is never keyword-triggered — a triage classification
+    # shouldn't depend on the patient happening to ask for one. It runs
+    # automatically any turn where a report is actually being read, right
+    # after READ_REPORT/SUMMARIZE so entities are already populated.
+    if any(t.task_type in (TaskType.READ_REPORT, TaskType.SUMMARIZE) for t in tasks):
+        tasks.append(Task(task_type=TaskType.ASSESS_RISK, description="Classify current clinical risk level"))
+
     logger.info("Planner produced %d task(s) for request: %r", len(tasks), user_request)
     return Plan(user_request=user_request, tasks=tasks)

@@ -28,13 +28,16 @@ import time
 from dataclasses import dataclass, field
 
 from agents import (
+    critic_agent,
     drug_interaction_agent,
     governance,
+    lab_analysis,
     qa_agent,
     reminder_agent,
     report_generator_agent,
     summarizer_agent,
     timeline_agent,
+    triage_agent,
 )
 from agents.planner_agent import create_plan
 from schemas import (
@@ -42,6 +45,7 @@ from schemas import (
     AgentStepLog,
     AgentStepStatus,
     ConversationTurn,
+    CriticResult,
     DrugInteractionWarning,
     ExtractedEntities,
     QAResult,
@@ -50,6 +54,7 @@ from schemas import (
     ReportSummary,
     TaskType,
     TimelineEvent,
+    TriageResult,
 )
 from tools.database import Repository
 from tools.medical_ner import extract_entities
@@ -75,6 +80,9 @@ class Session:
     last_interaction_warnings: list[DrugInteractionWarning] = field(default_factory=list)
     last_timeline: list[TimelineEvent] = field(default_factory=list)
     last_step_gated: bool = False
+    last_user_request: str = ""
+    last_triage: TriageResult | None = None
+    last_verification: CriticResult | None = None
 
     @property
     def has_report(self) -> bool:
@@ -139,6 +147,9 @@ class Orchestrator:
         self.session.last_report_path = None
         self.session.last_interaction_warnings = []
         self.session.last_timeline = []
+        self.session.last_user_request = user_request
+        self.session.last_triage = None
+        self.session.last_verification = None
 
         for task in plan.tasks:
             step_start = time.perf_counter()
@@ -194,6 +205,8 @@ class Orchestrator:
             report_file_path=self.session.last_report_path,
             interaction_warnings=self.session.last_interaction_warnings,
             timeline=self.session.last_timeline,
+            triage=self.session.last_triage,
+            verification=self.session.last_verification,
         )
 
     # -- per-task dispatch ------------------------------------------------
@@ -231,6 +244,12 @@ class Orchestrator:
                 patient_id=self.session.patient_id,
             )
             self.session.qa_history.append(result)
+            # Critic (v5): checks the answer against its own retrieved
+            # chunks, after the fact — provider-agnostic, works the same
+            # whether the answer came from the mock provider or a real LLM.
+            self.session.last_verification = critic_agent.verify_answer(
+                question, result.answer, result.retrieved_chunks
+            )
             return result.answer
 
         if task.task_type == TaskType.SET_REMINDER:
@@ -289,6 +308,21 @@ class Orchestrator:
                 return "A timeline needs at least two uploaded reports to show what's changed — only one is on file so far."
             lines = [f"- {e.uploaded_at} ({e.report_filename}): {', '.join(e.new_since_previous) or 'no new findings'}" for e in timeline[1:]]
             return "Timeline across your uploaded reports:\n" + "\n".join(lines)
+
+        if task.task_type == TaskType.ASSESS_RISK:
+            # Never keyword-triggered by the user (see planner_agent.py) —
+            # runs automatically whenever a report is being read this turn.
+            # Deliberately does not add anything to the visible chat
+            # response itself; a HIGH/CRITICAL result is surfaced via
+            # AgentRunResult.triage and, when escalation applies, via the
+            # Supervisor (agents/supervisor_agent.py) — not buried in text.
+            lab_readings = (
+                lab_analysis.analyze_lab_values(self.session.entities.lab_values) if self.session.entities else []
+            )
+            self.session.last_triage = triage_agent.assess_risk(
+                self.session.entities, lab_readings, user_text=self.session.last_user_request
+            )
+            return ""
 
         raise MediAgentError(f"Unknown task type: {task.task_type}")
 

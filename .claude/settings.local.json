@@ -116,7 +116,15 @@
       "Bash(curl -s \"https://api.github.com/repos/bharath050305/nlp_Mini_project\")",
       "Bash(curl -s -w \"\\\\nHTTP_STATUS:%{http_code}\\\\n\" \"https://api.github.com/repos/bharath050305/nlp_Mini_project\")",
       "Bash(git clone *)",
-      "Bash(find 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/existing_repo_check' -maxdepth 2 -not -path */.git*)"
+      "Bash(find 'C:\\\\Users\\\\bhara\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-bhara-Downloads-MediAgent-1-MediAgent\\\\743b2dd9-862a-4ed6-b843-65cfca3ca573\\\\scratchpad/existing_repo_check' -maxdepth 2 -not -path */.git*)",
+      "Bash(git branch *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(git fetch *)",
+      "Bash(rm -rf __TRACKED_VAR__/existing_repo_check)",
+      "Bash(powershell -Command \"Get-NetTCPConnection -LocalPort 8000,5173 -ErrorAction SilentlyContinue | Select-Object LocalPort, State\")",
+      "Bash(powershell -Command \"Get-CimInstance Win32_Process -Filter \\\\\"CommandLine LIKE '%backend.worker%'\\\\\" -ErrorAction SilentlyContinue | Select-Object ProcessId\")",
+      "Bash(powershell -Command \"Get-CimInstance Win32_Process -Filter \\\\\"CommandLine LIKE '%backend.worker%'\\\\\" | Select-Object ProcessId, CommandLine | Format-List\")"
     ]
   }
 }

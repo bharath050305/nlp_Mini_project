@@ -41,3 +41,26 @@ def test_no_report_defaults_to_summarize():
 def test_empty_request_raises():
     with pytest.raises(PlannerError):
         create_plan("   ", has_report=True)
+
+
+def test_assess_risk_auto_appended_when_report_is_read():
+    """ASSESS_RISK should never depend on the user asking for it — it
+    rides along automatically whenever a report is actually being read
+    this turn (v5 triage agent)."""
+    plan = create_plan("Summarize my report", has_report=True)
+    types = [t.task_type for t in plan.tasks]
+    assert TaskType.ASSESS_RISK in types
+    # and it runs after SUMMARIZE, so entities are populated by then
+    assert types.index(TaskType.ASSESS_RISK) > types.index(TaskType.SUMMARIZE)
+
+
+def test_assess_risk_not_appended_without_a_report():
+    plan = create_plan("What are my reminders?", has_report=False)
+    types = [t.task_type for t in plan.tasks]
+    assert TaskType.ASSESS_RISK not in types
+
+
+def test_assess_risk_appended_for_plain_questions_too():
+    plan = create_plan("What is my HbA1c?", has_report=True)
+    types = [t.task_type for t in plan.tasks]
+    assert TaskType.ASSESS_RISK in types

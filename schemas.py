@@ -33,6 +33,7 @@ class TaskType(str, Enum):
     GENERATE_REPORT = "generate_report"
     CHECK_INTERACTIONS = "check_interactions"
     VIEW_TIMELINE = "view_timeline"
+    ASSESS_RISK = "assess_risk"
 
 
 class AutonomyLevel(str, Enum):
@@ -219,6 +220,28 @@ class TimelineEvent(BaseModel):
 
 
 # --------------------------------------------------------------------------
+# Clinical Triage Agent (v5) — deterministic LOW/MEDIUM/HIGH/CRITICAL risk
+# classification. Rule-based by design: the LLM never decides emergency
+# care (see agents/triage_agent.py) — same philosophy as the mock LLM
+# provider and the curated drug-interaction table.
+# --------------------------------------------------------------------------
+class TriageResult(BaseModel):
+    level: str = "low"  # low | medium | high | critical
+    reasons: list[str] = Field(default_factory=list)
+
+
+# --------------------------------------------------------------------------
+# Critic / Evidence Verifier Agent (v5) — checks a QA answer against the
+# retrieved chunks it was supposedly grounded in. Rule-based (keyword
+# overlap), provider-agnostic — verifies the *output*, not the model.
+# --------------------------------------------------------------------------
+class CriticResult(BaseModel):
+    supported: bool = True
+    unsupported_claims: list[str] = Field(default_factory=list)
+    note: str = ""
+
+
+# --------------------------------------------------------------------------
 # Transcript-to-report agent (v3) — structures a consultation-audio
 # transcript into a SOAP note, the same way summarizer_agent structures
 # an uploaded PDF report. Kept here (not in backend/db_models.py) because
@@ -276,3 +299,8 @@ class AgentRunResult(BaseModel):
     report_file_path: str | None = None
     interaction_warnings: list[DrugInteractionWarning] = Field(default_factory=list)
     timeline: list[TimelineEvent] = Field(default_factory=list)
+    # v5: Supervisor / Triage / Critic layer (agents/supervisor_agent.py)
+    triage: TriageResult | None = None
+    verification: CriticResult | None = None
+    requires_human_review: bool = False
+    escalation_reason: str | None = None
