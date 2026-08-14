@@ -20,11 +20,13 @@ from sqlalchemy import text
 from backend.db import engine
 from backend.rate_limit import limiter
 from backend.routers import (
+    admin,
     analytics,
     approvals,
     assignments,
     auth,
     chat,
+    digital_twin,
     interactions,
     notifications,
     patients,
@@ -86,6 +88,8 @@ for router in (
     transcripts.router,
     analytics.router,
     approvals.router,
+    digital_twin.router,
+    admin.router,
 ):
     app.include_router(router)
 
