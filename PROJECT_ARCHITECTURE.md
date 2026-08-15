@@ -22,9 +22,13 @@ specifically, see [docs/RAG.md](docs/RAG.md).
 > to only their assigned patients, can review lab-trend analytics, and
 > can turn a recorded consultation into a structured SOAP note via
 > speech-to-text. A background scheduler fires medicine reminders and
-> refill alerts. Every agent's autonomy and risk level is tagged and
-> shown in the UI — the system is honest about what it can and can't be
-> trusted to do on its own."
+> refill alerts. A Supervisor agent sits above all of this: after every
+> chat turn it checks a deterministic risk-triage classification and an
+> evidence-verification pass together, and if either looks concerning it
+> queues the response into a real human-in-the-loop approval worklist for
+> a doctor or nurse — not just a disclaimer. Every agent's autonomy and
+> risk level is tagged and shown in the UI — the system is honest about
+> what it can and can't be trusted to do on its own."
 
 ## 2. What problem this solves
 
@@ -48,7 +52,7 @@ transcripts and a doctor can't see a patient they're not assigned to.
 ┌─────────────────────────────────────────────────────────┐
 │                  FastAPI Backend (backend/)               │
 │  ┌─────────┐  ┌──────────────┐  ┌────────────────────┐  │
-│  │  Auth    │  │  RBAC deps    │  │  10 routers          │  │
+│  │  Auth    │  │  RBAC deps    │  │  14 routers          │  │
 │  │ (JWT +   │→ │ (deps.py:     │→ │ (auth, patients,     │  │
 │  │  bcrypt) │  │ require_role, │  │ reports, chat,        │  │
 │  │          │  │ require_      │  │ reminders, analytics, │  │
@@ -58,25 +62,39 @@ transcripts and a doctor can't see a patient they're not assigned to.
 └────────────────────────────────────────────┼───────────────┘
                                                ▼
                           ┌────────────────────────────────────┐
+                          │          Supervisor Agent             │
+                          │      (agents/supervisor_agent.py)      │
+                          │  runs Planner→Orchestrator, then       │
+                          │  decides escalation from the result    │
+                          └──────────────────┬─────────────────────┘
+                                              ▼
+                          ┌────────────────────────────────────┐
                           │       Planner → Orchestrator         │
                           │  (agents/planner_agent.py,           │
                           │   agents/orchestrator.py)             │
                           │  free text → ordered task list →      │
                           │  dispatches to specialist agents       │
-                          └───┬──────┬──────┬──────┬──────┬──────┘
-                              ▼      ▼      ▼      ▼      ▼
-                        Summarizer  QA/RAG Reminder Drug  Timeline
-                        Agent       Agent  Agent   Agent  Agent
-                              │      │      │       │      │
-                              └──────┴──────┴───────┴──────┘
+                          └─┬────┬────┬────┬────┬────┬────┬──────┘
+                            ▼    ▼    ▼    ▼    ▼    ▼    ▼
+                        Summ. QA/RAG Rem. Drug Time. Triage Critic
+                        Agent  +Critic Agent Int. Agent  Agent  (verifies
+                                       Agent Agent               QA answers)
+                            │    │    │    │    │    │    │
+                            └────┴────┴────┴────┴────┴────┘
                                           │
                        ┌──────────────────┼──────────────────┐
                        ▼                  ▼                  ▼
                  PostgreSQL         LLM Provider        Tools
-                 (11 tables,      (mock / OpenAI /   (PDF reader, OCR,
+                 (15 tables,      (mock / OpenAI /   (PDF reader, OCR,
                   SQLAlchemy +      Anthropic,          Medical NER,
                   Alembic)          pluggable)          TF-IDF + embeddings,
                                                           Speech-to-text)
+                       │
+                       ▼
+              agent_approvals table ──▶ doctor/nurse Approvals worklist
+              (Supervisor writes here when triage=HIGH/CRITICAL, an
+               answer fails verification, or a major drug interaction
+               is flagged — a real approve/reject decision, audited)
 
   Separate process: backend/worker.py
   ── APScheduler (Postgres-backed job store) ──▶ fires daily/monthly
@@ -161,6 +179,72 @@ name extraction has low confidence, rather than silently guessing.
 | Clinical Timeline | Diffs entities across every report on file — "what's new since last time" | A0 · R1 |
 | Report Generator | Assembles a downloadable doctor-summary PDF | A1 · R1 |
 | Transcript Agent | Structures a consultation transcript into a 4-field SOAP note (Subjective/Objective/Assessment/Plan) | A1 · R1 |
+| Clinical Triage Agent | Rule-based LOW/MEDIUM/HIGH/CRITICAL risk classification — see §5.5 | A0 · R2 |
+| Critic / Evidence Verifier | Checks a QA answer's sentences against its own retrieved chunks for support — see §5.5 | A0 · R1 |
+
+### 5.5 The Supervisor pattern — what actually makes this "multi-agent," not just "many functions"
+
+A fair challenge to push back on: doesn't every agentic-AI project just
+mean "call several functions in a row"? The Planner → Orchestrator loop
+already answers part of that (dynamic task decomposition, not a fixed
+pipeline), but the **Supervisor** is what adds the second half —
+cross-cutting judgment that no single specialist agent has visibility
+into on its own:
+
+```
+Supervisor.handle_request()
+  1. Runs the existing Orchestrator exactly as before (zero changes to it)
+  2. Reads the COMBINED result: triage level + critic verification +
+     drug-interaction severity — three signals, one decision
+  3. Escalation needed if: triage is HIGH/CRITICAL, OR the Critic
+     flagged an unsupported claim, OR a MAJOR drug interaction was found
+  4. If yes: writes an `agent_approvals` row (Postgres) and sets
+     requires_human_review=True on the response — the patient still
+     gets their answer immediately (never silently blocked), but a
+     doctor/nurse now has a real approve/reject decision to make
+```
+
+Two things worth stating explicitly if asked:
+- **The Triage Agent is deliberately not the LLM.** It's a rule-based
+  ladder (curated critical-symptom keywords → beat everything else;
+  then lab readings more than 2x outside their reference range → HIGH;
+  any abnormal reading → MEDIUM). Handing "is this an emergency" to a
+  language model's judgment would be the one place in this whole system
+  where a hallucination could actually hurt someone — so it isn't.
+- **The Critic is provider-agnostic.** It doesn't matter whether the
+  answer came from the mock provider or a real GPT-4/Claude call — it
+  checks the *output text* against the *retrieved evidence chunks* for
+  vocabulary overlap, sentence by sentence. Verified live during
+  development: it correctly flagged a deliberately-injected fabricated
+  claim ("you have been diagnosed with lung cancer") while leaving a
+  genuinely grounded sentence alone in the same answer.
+
+### 5.6 Patient Digital Twin
+
+`GET /api/patients/{id}/digital-twin` — explicitly **not** a new
+reasoning layer, a consolidated read-model. It calls the same functions
+everything else already calls (entity extraction, `lab_analysis.py`,
+`triage_agent.py`, the dose-log adherence math from the analytics
+router) and assembles them into one response instead of the frontend
+making five separate calls and stitching the picture together itself.
+Worth mentioning if asked "what would you add next" — this is the
+natural foundation a more advanced longitudinal-reasoning feature would
+build on, without needing a new data model.
+
+### 5.7 Agent Registry
+
+`GET /api/admin/agents` (staff-only) returns a declarative listing —
+every agent's name, module, description, what it reads, what it writes,
+its risk tier and autonomy level (`agents/registry.py`). Said plainly,
+including in the code's own docstring: **this is not a runtime-enforced
+permission sandbox.** Enforcing it for real would mean routing every
+agent's data access through a generic permission-checked proxy —
+disproportionate rework for what this project needs, and it would risk
+destabilizing the RBAC that's already correctly enforced at the API
+boundary regardless of which agent a router calls. What it *does* give
+you: an honest, single-source answer to "what can this agent touch,"
+generated by reading the actual code — the kind of thing a real system
+audit would ask for, done at the scale this project can actually back up.
 
 ## 6. Role-based access control (RBAC)
 
@@ -175,6 +259,9 @@ the UI:
 | Doctor PDF generation | ✘ | ✔ | ✘ | ✘ |
 | Transcript upload/finalize | ✘ | ✔ | ✘ | ✘ |
 | Analytics dashboard | ✘ | ✔ | ✔ | ✘ |
+| Digital Twin view | ✘ | ✔ | ✔ | ✘ |
+| Approvals worklist | ✘ | ✔ | ✔ | ✘ |
+| Agent Registry | ✘ | ✘ | ✘ | ✔ |
 | Manage accounts / assignments | ✘ | ✘ | ✘ | ✔ |
 
 **Mechanism**: `backend/deps.py` has two FastAPI dependencies —
@@ -228,7 +315,7 @@ report that only ever said "renal function" correctly answered a
 have failed; the semantic layer's similarity score (0.53) correctly beat
 TF-IDF's (0.28) and the combined confidence was reported as "high."
 
-## 8. Database schema (PostgreSQL, 11 tables)
+## 8. Database schema (PostgreSQL, 15 tables)
 
 ```
 users ──┬── patients (user_id nullable — a chart can exist with no login)
@@ -238,8 +325,12 @@ users ──┬── patients (user_id nullable — a chart can exist with no l
         │       ├── reminders ── reminder_schedule_slots
         │       │                    └── dose_logs (explicit "mark taken", audit trail)
         │       ├── transcripts ── soap_notes (→ finalizes into a linked report)
-        │       └── conversation_history
+        │       ├── conversation_history
+        │       └── agent_approvals (Supervisor's human-in-the-loop queue —
+        │                            reviewed_by/reviewed_at/review_note = audit trail)
         └── notifications (recipient = any user)
+
+  + apscheduler_jobs (owned by APScheduler at runtime, not a SQLAlchemy model — see §11)
 ```
 
 Two design decisions worth being able to explain:
@@ -329,6 +420,23 @@ Separately: whenever quantity_remaining crosses the low-stock threshold
   persistence backend required **zero changes** to any agent. This is a
   duck-typing/dependency-inversion story worth telling explicitly if
   asked "how did you handle scaling to multiple users."
+- **Turning down 34 of 40 requested features, on purpose**: a later
+  request asked for a full "production-scale agentic platform" — 40
+  numbered features including Kubernetes, Kafka, multi-tenant hospital
+  isolation, FHIR/EHR integration, a trained ML risk-prediction model,
+  a knowledge graph, and chaos/load testing at 100K synthetic patients.
+  None of that infrastructure exists here — no cluster, no broker, no
+  second hospital, no labeled training data. Building stub versions of
+  any of it would have been strictly worse than not having them: an
+  unverifiable claim is a bigger liability under interview questioning
+  than a smaller, fully-defensible system. What shipped instead was the
+  6 items genuinely buildable on the *existing* architecture with zero
+  new infrastructure — Supervisor, Triage, Critic, human-in-the-loop
+  approvals, Digital Twin, Agent Registry (§5.5–5.7) — each one real,
+  tested, and demonstrable end-to-end. This is worth having ready as an
+  answer to "how do you handle scope": recognizing when a request
+  exceeds what can be honestly delivered, and saying so, rather than
+  producing something that only looks finished.
 
 ## 12. Likely interview questions and how to answer them
 
@@ -373,14 +481,46 @@ A: The APScheduler/Alembic autogenerate conflict (§11) — subtle because
 it wouldn't have failed loudly, it would have silently deleted every
 user's scheduled medicine reminders on the next routine migration.
 
+**Q: What makes this "multi-agent" rather than just several functions
+called in sequence?**
+A: Two things, concretely. First, the Planner produces a *dynamic* task
+list from free text, not a fixed pipeline — different requests genuinely
+execute different agent sequences. Second, and more importantly, the
+Supervisor (§5.5) makes a decision no single specialist agent has the
+information to make on its own: it reads the triage result, the critic's
+verification, and any drug-interaction warnings *together* and decides
+whether a human needs to see this. That cross-cutting judgment, plus a
+real approve/reject workflow with an audit trail, is what separates
+"agentic" from "a chatbot that calls tools."
+
+**Q: Why is risk triage rule-based instead of asking the LLM to judge
+severity?**
+A: Because that's the one place in the whole system where getting it
+wrong has the highest cost, and LLMs are the least auditable component
+available. A curated keyword ladder plus a numeric threshold on lab
+deviation is slower to extend than "just ask GPT-4," but every
+CRITICAL/HIGH classification traces to a specific rule you can point to
+— which matters far more than coverage for a safety-classification step.
+
+**Q: You said you deliberately didn't build 34 of 40 requested features
+— how did you decide which 6 to keep?**
+A: I only kept the ones buildable on infrastructure that actually
+exists here, verified by actually building and testing them, not by how
+impressive they'd sound. See §11 — this is worth leading with if the
+interviewer pushes on scope, since it shows the judgment call was
+explicit, not an oversight.
+
 ## 13. Quick facts for a rapid-fire round
 
-- **32** API routes across **10** routers
-- **11** PostgreSQL tables
-- **60** automated backend tests passing, `ruff` lint clean
-- **9** specialist/support agents (`agents/` directory)
+- **36** API routes across **14** routers
+- **15** PostgreSQL tables
+- **74** automated backend tests passing, `ruff` lint clean
+- **12** specialist/support agents (`agents/` directory), including a
+  Supervisor, a rule-based Triage Agent, and a provider-agnostic Critic
 - **4** user roles, enforced via 2 core FastAPI dependencies
 - **2** retrieval backends for RAG (TF-IDF always-on, embeddings opt-in)
+- **1** human-in-the-loop approval queue, with a full audit trail
+  (who reviewed, when, what they decided, and why)
 - Runs **fully offline** by default (mock LLM, no API keys required) —
   every "real" backend (OpenAI, Whisper, embeddings, SMTP) is an explicit
   opt-in via one `.env` line each
