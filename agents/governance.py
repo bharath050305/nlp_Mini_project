@@ -49,6 +49,8 @@ from schemas import AutonomyLevel, RiskTier, TaskType
 #                                 significant judgment call R2 exists for;
 #                                 the Supervisor (not this agent) decides
 #                                 whether that escalates to a human.
+# SMALL_TALK             -> A0/R0  Canned acknowledgement (e.g. "thank you"),
+#                                 no report access, no clinical content.
 GOVERNANCE_TABLE: dict[TaskType, tuple[AutonomyLevel, RiskTier]] = {
     TaskType.READ_REPORT: (AutonomyLevel.A0_SUGGEST_ONLY, RiskTier.R0_ADMINISTRATIVE),
     TaskType.SUMMARIZE: (AutonomyLevel.A0_SUGGEST_ONLY, RiskTier.R1_PATIENT_INFORMATIONAL),
@@ -59,6 +61,10 @@ GOVERNANCE_TABLE: dict[TaskType, tuple[AutonomyLevel, RiskTier]] = {
     TaskType.CHECK_INTERACTIONS: (AutonomyLevel.A0_SUGGEST_ONLY, RiskTier.R2_CLINICAL_DECISION_SUPPORT),
     TaskType.VIEW_TIMELINE: (AutonomyLevel.A0_SUGGEST_ONLY, RiskTier.R1_PATIENT_INFORMATIONAL),
     TaskType.ASSESS_RISK: (AutonomyLevel.A0_SUGGEST_ONLY, RiskTier.R2_CLINICAL_DECISION_SUPPORT),
+    TaskType.DIFFERENTIAL_DIAGNOSIS: (AutonomyLevel.A1_DRAFT_FOR_SIGNOFF, RiskTier.R2_CLINICAL_DECISION_SUPPORT),
+    TaskType.CONSENSUS_EVALUATION: (AutonomyLevel.A2_EXECUTE_WITH_GATES, RiskTier.R2_CLINICAL_DECISION_SUPPORT),
+    TaskType.ANALYZE_LAB_TRENDS: (AutonomyLevel.A0_SUGGEST_ONLY, RiskTier.R2_CLINICAL_DECISION_SUPPORT),
+    TaskType.SMALL_TALK: (AutonomyLevel.A0_SUGGEST_ONLY, RiskTier.R0_ADMINISTRATIVE),
 }
 
 _OVERSIGHT_NOTES: dict[AutonomyLevel, str] = {

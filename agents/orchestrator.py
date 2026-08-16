@@ -28,10 +28,13 @@ import time
 from dataclasses import dataclass, field
 
 from agents import (
+    consensus_engine,
     critic_agent,
+    differential_agent,
     drug_interaction_agent,
     governance,
     lab_analysis,
+    lab_trend_agent,
     qa_agent,
     reminder_agent,
     report_generator_agent,
@@ -44,10 +47,13 @@ from schemas import (
     AgentRunResult,
     AgentStepLog,
     AgentStepStatus,
+    ConsensusEvaluation,
     ConversationTurn,
     CriticResult,
+    DifferentialCandidate,
     DrugInteractionWarning,
     ExtractedEntities,
+    LabTrajectory,
     QAResult,
     Reminder,
     Report,
@@ -83,6 +89,9 @@ class Session:
     last_user_request: str = ""
     last_triage: TriageResult | None = None
     last_verification: CriticResult | None = None
+    last_consensus: ConsensusEvaluation | None = None
+    last_trajectories: list[LabTrajectory] = field(default_factory=list)
+    last_differentials: list[DifferentialCandidate] = field(default_factory=list)
 
     @property
     def has_report(self) -> bool:
@@ -150,6 +159,9 @@ class Orchestrator:
         self.session.last_user_request = user_request
         self.session.last_triage = None
         self.session.last_verification = None
+        self.session.last_consensus = None
+        self.session.last_trajectories = []
+        self.session.last_differentials = []
 
         for task in plan.tasks:
             step_start = time.perf_counter()
@@ -207,10 +219,15 @@ class Orchestrator:
             timeline=self.session.last_timeline,
             triage=self.session.last_triage,
             verification=self.session.last_verification,
+            consensus=self.session.last_consensus,
+            lab_trajectories=self.session.last_trajectories,
         )
 
     # -- per-task dispatch ------------------------------------------------
     def _execute_task(self, task) -> str:
+        if task.task_type == TaskType.SMALL_TALK:
+            return "You're welcome! Let me know if you have any other questions about your reports or medications."
+
         if task.task_type == TaskType.READ_REPORT:
             if not self.session.has_report:
                 raise MediAgentError("No report has been uploaded yet.")
@@ -323,6 +340,126 @@ class Orchestrator:
                 self.session.entities, lab_readings, user_text=self.session.last_user_request
             )
             return ""
+
+        if task.task_type == TaskType.DIFFERENTIAL_DIAGNOSIS:
+            if not self.session.has_report:
+                raise MediAgentError("Upload a report or describe symptoms before generating differential diagnoses.")
+            if self.session.entities is None:
+                self.session.entities = extract_entities(self.session.report_text)
+            lab_readings = (
+                lab_analysis.analyze_lab_values(self.session.entities.lab_values) if self.session.entities else []
+            )
+            candidates = differential_agent.generate_differential(
+                self.session.entities,
+                user_text=self.session.last_user_request,
+                lab_readings=lab_readings,
+                report_text=self.session.report_text,
+            )
+            self.session.last_differentials = candidates
+            if not candidates:
+                return "No distinct clinical differential patterns matched current findings. Recommend comprehensive clinical consultation."
+            lines = [
+                f"- **{c.condition_name}** ({int(c.probability_score * 100)}% support, ICD-10: {c.icd10_code or 'N/A'})"
+                for c in candidates[:3]
+            ]
+            return "Independent Clinical Differential Hypotheses (A1 Draft for Signoff):\n" + "\n".join(lines)
+
+        if task.task_type == TaskType.ANALYZE_LAB_TRENDS:
+            reports = self.repo.list_reports(self.session.patient_id)
+            readings_by_report: list[tuple[str, list]] = []
+            for rep in reports:
+                date_str = rep.created_at.strftime("%Y-%m-%d") if rep.created_at else rep.filename
+                ent = extract_entities(rep.raw_text)
+                readings = lab_analysis.analyze_lab_values(ent.lab_values)
+                readings_by_report.append((date_str, readings))
+            if not readings_by_report and self.session.entities:
+                readings = lab_analysis.analyze_lab_values(self.session.entities.lab_values)
+                readings_by_report.append((self.session.report_filename or "Current", readings))
+            trajectories = lab_trend_agent.analyze_trajectories(readings_by_report)
+            self.session.last_trajectories = trajectories
+            if not trajectories:
+                return "No numeric time-series lab readings identified to track trajectories."
+            lines = []
+            for tr in trajectories:
+                status_str = f"[{tr.trend_direction.upper()}] (slope: {tr.slope_per_interval:+.1f})"
+                if tr.clinical_alert:
+                    status_str += f" ⚠️ {tr.clinical_alert}"
+                lines.append(f"- **{tr.test_name}**: {status_str}")
+            return "Laboratory Value Trajectories & Rate of Change:\n" + "\n".join(lines)
+
+        if task.task_type == TaskType.CONSENSUS_EVALUATION:
+            if not self.session.has_report and not self.session.last_differentials:
+                raise MediAgentError("No active clinical findings to evaluate consensus.")
+            if self.session.entities is None and self.session.has_report:
+                self.session.entities = extract_entities(self.session.report_text)
+            lab_readings = (
+                lab_analysis.analyze_lab_values(self.session.entities.lab_values) if self.session.entities else []
+            )
+
+            # Step 1: Gather independent proposals from specialized perspectives
+            clinical_candidates = self.session.last_differentials or differential_agent.generate_differential(
+                self.session.entities,
+                user_text=self.session.last_user_request,
+                lab_readings=lab_readings,
+                report_text=self.session.report_text,
+            )
+
+            # Lab analyst proposal: prioritize candidates with matching abnormal lab markers
+            lab_candidates = [
+                c for c in clinical_candidates if any(e.source_type == "lab_observation" for e in c.supporting_evidence)
+            ] or clinical_candidates[:2]
+
+            # Guideline evidence perspective
+            guideline_candidates = clinical_candidates[:3]
+
+            proposals = {
+                "clinical_reasoner": clinical_candidates,
+                "lab_trend_analyst": lab_candidates,
+                "guideline_evidence": guideline_candidates,
+            }
+
+            # Step 2: Adversarial Critic Round
+            symptoms = self.session.entities.symptoms if self.session.entities else []
+            critique = critic_agent.critique_differential(
+                clinical_candidates,
+                symptoms=symptoms,
+                user_text=self.session.last_user_request,
+                lab_readings=lab_readings,
+            )
+
+            # Step 3: Run Weighted Consensus & Safety VETO Engine
+            allergies = list(self.session.entities.diseases) if self.session.entities else []
+            active_meds = [r.medicine_name for r in self.repo.list_reminders(self.session.patient_id)]
+            engine = consensus_engine.HealthcareConsensusEngine()
+            eval_result = engine.evaluate_clinical_consensus(
+                proposals,
+                critic_critique=critique,
+                patient_allergies=allergies,
+                active_medications=active_meds,
+                lab_readings=lab_readings,
+            )
+            self.session.last_consensus = eval_result
+
+            if eval_result.safety_veto_triggered:
+                return (
+                    f"⚠️ **SAFETY VETO ACTIVATED**: {eval_result.veto_reason}\n"
+                    "This case has been automatically escalated to a clinician."
+                )
+
+            primary = eval_result.primary_candidate
+            summary_lines = [
+                f"**Multi-Agent Consensus Status**: `{eval_result.status.value.upper()}` (Agreement Entropy: {eval_result.agreement_entropy:.2f})",
+            ]
+            if primary:
+                summary_lines.append(
+                    f"**Primary Consensus Diagnosis**: {primary.condition_name} ({int(primary.probability_score * 100)}% consensus weight)"
+                )
+            if eval_result.critic_notes:
+                summary_lines.append(f"**Adversarial Critic Notes**: {eval_result.critic_notes}")
+            if eval_result.missing_information:
+                summary_lines.append(f"**Recommended Investigations**: {', '.join(eval_result.missing_information)}")
+
+            return "\n".join(summary_lines)
 
         raise MediAgentError(f"Unknown task type: {task.task_type}")
 

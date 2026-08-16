@@ -1,5 +1,35 @@
 # MediAgent — Agentic AI for Multi-Step Healthcare Task Automation
 
+## Mini Project Details
+
+| | |
+|---|---|
+| **Project Title** | MediAgent — Agentic AI for Multi-Step Healthcare Task Automation |
+| **Group Members** | Bharath, Gregory, Harshwardhan, Shivam Gupta |
+| **Guide** | Dr. Vidya Keshwani |
+
+**Problem Statement:** Patients receiving a medical report (lab results,
+diagnoses, prescriptions) are typically left to interpret dense clinical
+text on their own — abnormal values go unexplained, drug interactions go
+unchecked, and follow-up questions have nowhere to go between doctor
+visits. MediAgent addresses this with an agentic AI system: a single
+natural-language request (e.g. *"summarize my report and check for
+abnormal values"*) is decomposed by a Planner Agent into an ordered set
+of sub-tasks — report parsing, summarization, question-answering,
+drug-interaction checking, timeline tracking, reminders — each executed
+by a dedicated specialist agent, with every step logged for
+explainability and an honest autonomy/risk label.
+
+**Technologies Used:** Python (FastAPI, SQLAlchemy, Alembic, spaCy,
+scikit-learn, PyMuPDF, ReportLab), PostgreSQL, React (Vite + TypeScript +
+Tailwind), JWT authentication, APScheduler, openai-whisper (speech-to-text),
+Tesseract OCR — see [Tech stack](#tech-stack--and-why-it-differs-from-the-original-brief)
+below for the full breakdown and rationale.
+
+**Execution Instructions:** see [Setup](#setup) below.
+
+---
+
 MediAgent lets a user type **one natural-language request** and have it
 automatically broken into an ordered plan of sub-tasks — read a medical
 report, summarize it, flag abnormal values, answer follow-up questions,
@@ -16,6 +46,18 @@ structured clinical note.
 > me if my medicines interact."* MediAgent understands this as three distinct
 > tasks, plans an execution order, runs the right specialist agent for each,
 > and returns one consolidated, evidence-backed result.
+
+## What's new in v6 (Consensus-Driven Healthcare Multi-Agent System)
+
+v6 elevates MediAgent into a research-grade multi-agent clinical decision support system featuring independent multi-agent reasoning, adversarial critic falsification, mathematical evidence-weighted consensus scoring, hard deterministic safety vetoes, and interactive visual deliberations:
+
+| Addition | What it does |
+|---|---|
+| **Multi-Agent Consensus Engine** (`agents/consensus_engine.py`) | Evidence-weighted aggregation across Clinical, Lab, and Guideline agents with entropy calculation, dispute detection, and zero-tolerance safety vetoes for patient allergies / contraindications |
+| **Independent Differential Reasoning Agent** (`agents/differential_agent.py`) | Formulates evidence-grounded differential diagnosis hypotheses with ICD-10 codes and source citations before cross-agent deliberation to prevent conversational groupthink |
+| **Lab Trajectory Analyst Agent** (`agents/lab_trend_agent.py`) | Mathematical rate-of-change ($\Delta\text{Value}/\Delta t$) and slope calculation across time-series reports with critical plummeting/escalation trajectory alerts |
+| **Adversarial Critic Gate** (`agents/critic_agent.py`) | "Devil's Advocate" falsification round: challenges candidate diagnoses, identifies dangerous clinical mimics, and flags missing confirmatory tests |
+| **Interactive Consensus Visualizer** (`frontend/src/components/chat/ConsensusVisualizer.tsx`) | Real-time visual candidate probability bars, consensus status badges, evidence citation drawers, and trajectory indicators in the chat stream |
 
 ## What's new in v3
 

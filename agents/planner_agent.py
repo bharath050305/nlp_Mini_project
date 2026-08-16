@@ -24,6 +24,16 @@ from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Checked before intent matching, and exclusively — a bare "thank you" is
+# not a question that should fall through to ANSWER_QUESTION's default
+# (which would otherwise retrieve report chunks for it, see qa_agent.py's
+# refusal threshold). Deliberately scoped to standalone thanks/acks only:
+# "thanks, what's my LDL" still falls through to normal intent matching.
+_SMALL_TALK_PATTERN = re.compile(
+    r"^\s*(thanks?( you)?|thank\s*u|thx|ty|cheers)(\s+(so\s+)?(much|a\s+lot))?[\s!.,]*$",
+    re.IGNORECASE,
+)
+
 # Ordered so that, if several intents match, tasks come out in a sensible
 # execution sequence (read -> summarize -> answer -> remind -> report).
 _INTENT_PATTERNS: list[tuple[TaskType, re.Pattern]] = [
@@ -63,6 +73,18 @@ _INTENT_PATTERNS: list[tuple[TaskType, re.Pattern]] = [
             re.IGNORECASE,
         ),
     ),
+    (
+        TaskType.DIFFERENTIAL_DIAGNOSIS,
+        re.compile(r"\b(diagnosis|differential|what disease|causes? of|what could (it|this) be)\b", re.IGNORECASE),
+    ),
+    (
+        TaskType.ANALYZE_LAB_TRENDS,
+        re.compile(r"\b(trend|trajectory|rate of change|plummet\w*|spik\w*|lab changes?)\b", re.IGNORECASE),
+    ),
+    (
+        TaskType.CONSENSUS_EVALUATION,
+        re.compile(r"\b(consensus|multi-agent|deliberat\w*|second opinion|cross-check)\b", re.IGNORECASE),
+    ),
 ]
 
 
@@ -96,6 +118,13 @@ def create_plan(user_request: str, has_report: bool) -> Plan:
     if not user_request or not user_request.strip():
         raise PlannerError("Cannot plan an empty request.")
 
+    if _SMALL_TALK_PATTERN.match(user_request):
+        logger.info("Planner produced 1 task(s) for request: %r", user_request)
+        return Plan(
+            user_request=user_request,
+            tasks=[Task(task_type=TaskType.SMALL_TALK, description="Acknowledge the patient's thanks")],
+        )
+
     matched_types: list[TaskType] = []
     for task_type, pattern in _INTENT_PATTERNS:
         if pattern.search(user_request):
@@ -123,7 +152,14 @@ def create_plan(user_request: str, has_report: bool) -> Plan:
     # VIEW_TIMELINE deliberately excluded: it reads the *full* report history
     # from the database (agents/timeline_agent.py), not the current session's
     # active report, so it shouldn't require one to be loaded right now.
-    needs_report = {TaskType.SUMMARIZE, TaskType.ANSWER_QUESTION, TaskType.GENERATE_REPORT, TaskType.CHECK_INTERACTIONS}
+    needs_report = {
+        TaskType.SUMMARIZE,
+        TaskType.ANSWER_QUESTION,
+        TaskType.GENERATE_REPORT,
+        TaskType.CHECK_INTERACTIONS,
+        TaskType.DIFFERENTIAL_DIAGNOSIS,
+        TaskType.CONSENSUS_EVALUATION,
+    }
     if has_report and any(t in needs_report for t in matched_types):
         tasks.append(Task(task_type=TaskType.READ_REPORT, description="Load the uploaded report into working memory"))
 
@@ -142,6 +178,14 @@ def create_plan(user_request: str, has_report: bool) -> Plan:
             tasks.append(Task(task_type=task_type, description="Check known medicines for interaction warnings"))
         elif task_type == TaskType.VIEW_TIMELINE:
             tasks.append(Task(task_type=task_type, description="Build a timeline across all uploaded reports"))
+        elif task_type == TaskType.DIFFERENTIAL_DIAGNOSIS:
+            tasks.append(Task(task_type=task_type, description="Formulate differential diagnosis candidates from findings"))
+            if TaskType.CONSENSUS_EVALUATION not in matched_types:
+                tasks.append(Task(task_type=TaskType.CONSENSUS_EVALUATION, description="Evaluate multi-agent weighted consensus & safety vetoes"))
+        elif task_type == TaskType.ANALYZE_LAB_TRENDS:
+            tasks.append(Task(task_type=task_type, description="Analyze time-series lab trajectories & critical trends"))
+        elif task_type == TaskType.CONSENSUS_EVALUATION:
+            tasks.append(Task(task_type=task_type, description="Evaluate multi-agent weighted consensus & safety vetoes"))
 
     # ASSESS_RISK (v5) is never keyword-triggered — a triage classification
     # shouldn't depend on the patient happening to ask for one. It runs

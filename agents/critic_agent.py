@@ -71,3 +71,74 @@ def verify_answer(question: str, answer: str, retrieved_chunks: list[str]) -> Cr
         return result
 
     return CriticResult(supported=True, note="Every sentence shares vocabulary with retrieved report text.")
+
+
+# --------------------------------------------------------------------------
+# Adversarial Differential Critique (v6)
+# Falsification & Overlooked Emergency Detection
+# --------------------------------------------------------------------------
+def critique_differential(
+    candidates: list,
+    symptoms: list[str],
+    user_text: str = "",
+    lab_readings: list | None = None,
+) -> dict:
+    """Adversarial Devil's Advocate round:
+    1. Assumes the primary candidate might be incomplete or misleading.
+    2. Identifies dangerous clinical mimics that share presenting symptoms.
+    3. Flags missing diagnostic investigations needed to definitively rule out emergencies.
+    """
+    if not candidates:
+        return {
+            "critique_summary": "No active differential candidates were proposed to critique.",
+            "contradictions": [],
+            "missing_investigations": [],
+        }
+
+    primary = candidates[0]
+    primary_name = getattr(primary, "condition_name", str(primary))
+    all_symptoms_text = " ".join(symptoms).lower() + " " + user_text.lower()
+
+    contradictions: list[str] = []
+    missing_tests: list[str] = []
+
+    # Adversarial mimic checks
+    if "pneumonia" in primary_name.lower():
+        if any(term in all_symptoms_text for term in ("chest pain", "shortness of breath", "dyspnea", "tachycardia")):
+            contradictions.append(
+                "Warning: Presenting dyspnea/chest pain mimics Pulmonary Embolism (PE). PE cannot be safely excluded based on symptoms alone."
+            )
+            missing_tests.append("D-Dimer Assay / CTPA")
+
+    if any(term in primary_name.lower() for term in ("gerd", "reflux", "hypertension")):
+        if any(term in all_symptoms_text for term in ("chest", "pain", "tightness", "pressure", "arm", "jaw")):
+            contradictions.append(
+                "Critical Alert: Atypical chest discomfort may indicate Acute Coronary Syndrome (ACS). Must not diagnose isolated GERD/hypertension without ruling out cardiac ischemia."
+            )
+            missing_tests.append("12-Lead ECG & Serial Troponin I")
+
+    if "diabetes" in primary_name.lower():
+        if any(term in all_symptoms_text for term in ("vomiting", "nausea", "confusion", "drowsy")):
+            contradictions.append(
+                "Urgent Alert: Gastrointestinal symptoms in suspected diabetes require immediate evaluation for Diabetic Ketoacidosis (DKA)."
+            )
+            missing_tests.append("Serum Ketones & Venous Blood Gas")
+
+    # Add general recommended tests from candidates that were not found in current observations
+    for cand in candidates[:3]:
+        for t in getattr(cand, "recommended_tests", []):
+            if t not in missing_tests:
+                missing_tests.append(t)
+
+    summary = (
+        f"Adversarial Review on '{primary_name}': "
+        + (f"{len(contradictions)} critical mimic warning(s) raised. " if contradictions else "Consistent with presenting clinical picture. ")
+        + f"{len(missing_tests)} confirmatory/exclusion test(s) recommended."
+    )
+
+    return {
+        "critique_summary": summary,
+        "contradictions": contradictions,
+        "missing_investigations": missing_tests[:5],
+    }
+

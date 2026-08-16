@@ -34,6 +34,10 @@ class TaskType(str, Enum):
     CHECK_INTERACTIONS = "check_interactions"
     VIEW_TIMELINE = "view_timeline"
     ASSESS_RISK = "assess_risk"
+    DIFFERENTIAL_DIAGNOSIS = "differential_diagnosis"
+    CONSENSUS_EVALUATION = "consensus_evaluation"
+    ANALYZE_LAB_TRENDS = "analyze_lab_trends"
+    SMALL_TALK = "small_talk"
 
 
 class AutonomyLevel(str, Enum):
@@ -284,6 +288,64 @@ class ConversationTurn(BaseModel):
 
 
 # --------------------------------------------------------------------------
+# Multi-Agent Consensus & Clinical Decision Support (v6)
+# --------------------------------------------------------------------------
+class ConsensusStatus(str, Enum):
+    UNANIMOUS = "unanimous"
+    WEIGHTED_CONSENSUS = "weighted_consensus"
+    DISPUTED = "disputed"
+    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+    SAFETY_VETOED = "safety_vetoed"
+
+
+class EvidenceCitation(BaseModel):
+    source_type: str  # "observation" | "guideline" | "patient_history" | "critic"
+    resource_id: str = ""
+    snippet: str
+    confidence_score: float = 1.0
+
+
+class DifferentialCandidate(BaseModel):
+    condition_name: str
+    icd10_code: str | None = None
+    probability_score: float
+    supporting_evidence: list[EvidenceCitation] = Field(default_factory=list)
+    contradicting_evidence: list[str] = Field(default_factory=list)
+    recommended_tests: list[str] = Field(default_factory=list)
+
+
+class LabTrajectoryPoint(BaseModel):
+    test_name: str
+    date_or_seq: str
+    value: float
+    unit: str = ""
+    is_abnormal: bool = False
+
+
+class LabTrajectory(BaseModel):
+    test_name: str
+    readings: list[LabTrajectoryPoint] = Field(default_factory=list)
+    slope_per_interval: float = 0.0
+    trend_direction: str = "stable"  # "rising" | "falling" | "stable" | "critical_drop" | "critical_spike"
+    clinical_alert: str | None = None
+
+
+class ConsensusEvaluation(BaseModel):
+    consensus_id: str
+    status: ConsensusStatus
+    primary_candidate: DifferentialCandidate | None = None
+    secondary_candidates: list[DifferentialCandidate] = Field(default_factory=list)
+    agreement_entropy: float = 0.0
+    agent_votes: dict[str, float] = Field(default_factory=dict)
+    critic_notes: str = ""
+    safety_veto_triggered: bool = False
+    veto_reason: str | None = None
+    missing_information: list[str] = Field(default_factory=list)
+    human_approval_required: bool = True
+    approved_by: str | None = None
+
+
+# --------------------------------------------------------------------------
 # Orchestrator I/O
 # --------------------------------------------------------------------------
 class AgentRunResult(BaseModel):
@@ -304,3 +366,6 @@ class AgentRunResult(BaseModel):
     verification: CriticResult | None = None
     requires_human_review: bool = False
     escalation_reason: str | None = None
+    # v6: Multi-Agent Consensus & Trajectory Decision Support
+    consensus: ConsensusEvaluation | None = None
+    lab_trajectories: list[LabTrajectory] = Field(default_factory=list)

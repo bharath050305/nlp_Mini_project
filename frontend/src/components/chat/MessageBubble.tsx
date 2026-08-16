@@ -1,6 +1,7 @@
 import type { AgentRunResult } from "@/api/types";
 import ExecutionTimeline from "./ExecutionTimeline";
 import EvidenceCard from "./EvidenceCard";
+import ConsensusVisualizer from "./ConsensusVisualizer";
 import SpeakButton from "./SpeakButton";
 
 export interface ChatMessage {
@@ -47,6 +48,10 @@ export default function MessageBubble({ message }: { message: ChatMessage }) {
         )}
         {message.result && (
           <div className="mt-1">
+            <ConsensusVisualizer
+              consensus={message.result.consensus}
+              trajectories={message.result.lab_trajectories}
+            />
             <ExecutionTimeline log={message.result.execution_log} />
             <EvidenceCard result={message.result} />
           </div>

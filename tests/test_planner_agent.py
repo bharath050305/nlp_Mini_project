@@ -64,3 +64,16 @@ def test_assess_risk_appended_for_plain_questions_too():
     plan = create_plan("What is my HbA1c?", has_report=True)
     types = [t.task_type for t in plan.tasks]
     assert TaskType.ASSESS_RISK in types
+
+
+@pytest.mark.parametrize("text", ["thank you", "Thanks!", "thanks a lot", "ty", "thx", "thank u so much"])
+def test_small_talk_thanks_is_exclusive(text):
+    plan = create_plan(text, has_report=True)
+    assert [t.task_type for t in plan.tasks] == [TaskType.SMALL_TALK]
+
+
+def test_thanks_embedded_in_a_real_question_is_not_small_talk():
+    plan = create_plan("thanks, what is my LDL?", has_report=True)
+    types = [t.task_type for t in plan.tasks]
+    assert TaskType.SMALL_TALK not in types
+    assert TaskType.ANSWER_QUESTION in types

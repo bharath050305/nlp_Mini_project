@@ -282,7 +282,14 @@ class AnalyticsSummary(BaseModel):
 # --------------------------------------------------------------------------
 # Human-in-the-loop approval queue (v5)
 # --------------------------------------------------------------------------
-ApprovalType = Literal["triage", "verification", "interaction"]
+ApprovalType = Literal[
+    "triage",
+    "verification",
+    "interaction",
+    "safety_veto",
+    "consensus_dispute",
+    "lab_trajectory",
+]
 ApprovalStatus = Literal["pending", "approved", "rejected"]
 ApprovalDecision = Literal["approved", "rejected"]
 

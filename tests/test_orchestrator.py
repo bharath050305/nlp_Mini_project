@@ -34,6 +34,12 @@ def test_question_answering_flow(orchestrator):
     assert result.qa_results[0].answer
 
 
+def test_thank_you_gets_a_canned_reply(orchestrator):
+    result = orchestrator.handle_request("thank you")
+    assert result.final_response == "You're welcome! Let me know if you have any other questions about your reports or medications."
+    assert result.qa_results == []
+
+
 def test_reminder_then_list_flow(orchestrator):
     orchestrator.handle_request("Remind me to take Metformin every morning")
     result = orchestrator.handle_request("Show my reminders")
@@ -108,3 +114,33 @@ def test_timeline_across_two_reports(tmp_path):
     assert len(result.timeline) == 2
     assert result.timeline[0].report_filename == "visit1.pdf"
     assert result.timeline[1].report_filename == "visit2.pdf"
+
+
+def test_differential_and_consensus_flow(tmp_path):
+    repo = Repository(db=Database(db_path=tmp_path / "test.db"))
+    patient = repo.get_or_create_default_patient()
+    orch = Orchestrator(repo, patient.id)
+    orch.load_report("Patient reports fever, cough, and chest pain. WBC is high.", "lung_visit.pdf")
+
+    result = orch.handle_request("What could this diagnosis be and what is the multi-agent consensus?")
+    assert result.consensus is not None
+    assert result.consensus.primary_candidate is not None
+    assert result.consensus.human_approval_required is True
+    all_cand_names = [result.consensus.primary_candidate.condition_name] + [
+        c.condition_name for c in result.consensus.secondary_candidates
+    ]
+    assert any("Pneumonia" in name or "Coronary" in name for name in all_cand_names)
+
+
+def test_lab_trajectories_flow(tmp_path):
+    repo = Repository(db=Database(db_path=tmp_path / "test.db"))
+    patient = repo.get_or_create_default_patient()
+    orch = Orchestrator(repo, patient.id)
+    orch.load_report("Blood Glucose: 110 mg/dL", "rep1.pdf")
+    orch.load_report("Blood Glucose: 180 mg/dL", "rep2.pdf")
+    orch.load_report("Blood Glucose: 260 mg/dL", "rep3.pdf")
+
+    result = orch.handle_request("Show me the trend and rate of change of my lab values")
+    assert len(result.lab_trajectories) > 0
+    assert any(tr.test_name == "Blood Glucose" for tr in result.lab_trajectories)
+

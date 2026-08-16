@@ -128,6 +128,60 @@ export interface CriticResult {
   note: string;
 }
 
+export type ConsensusStatus =
+  | "unanimous"
+  | "weighted_consensus"
+  | "disputed"
+  | "insufficient_evidence"
+  | "safety_vetoed";
+
+export interface EvidenceCitation {
+  source_type: string;
+  resource_id: string;
+  snippet: string;
+  confidence_score: number;
+}
+
+export interface DifferentialCandidate {
+  condition_name: string;
+  icd10_code: string | null;
+  probability_score: number;
+  supporting_evidence: EvidenceCitation[];
+  contradicting_evidence: string[];
+  recommended_tests: string[];
+}
+
+export interface LabTrajectoryPoint {
+  test_name: string;
+  date_or_seq: string;
+  value: number;
+  unit: string;
+  is_abnormal: boolean;
+}
+
+export interface LabTrajectory {
+  test_name: string;
+  readings: LabTrajectoryPoint[];
+  slope_per_interval: number;
+  trend_direction: "rising" | "falling" | "stable" | "critical_drop" | "critical_spike";
+  clinical_alert: string | null;
+}
+
+export interface ConsensusEvaluation {
+  consensus_id: string;
+  status: ConsensusStatus;
+  primary_candidate: DifferentialCandidate | null;
+  secondary_candidates: DifferentialCandidate[];
+  agreement_entropy: number;
+  agent_votes: Record<string, number>;
+  critic_notes: string;
+  safety_veto_triggered: boolean;
+  veto_reason: string | null;
+  missing_information: string[];
+  human_approval_required: boolean;
+  approved_by: string | null;
+}
+
 export interface AgentRunResult {
   final_response: string;
   plan: Plan;
@@ -144,6 +198,9 @@ export interface AgentRunResult {
   verification: CriticResult | null;
   requires_human_review: boolean;
   escalation_reason: string | null;
+  // v6: Multi-Agent Consensus & Trajectory Decision Support
+  consensus?: ConsensusEvaluation | null;
+  lab_trajectories?: LabTrajectory[];
 }
 
 export type ScheduleType = "daily" | "monthly" | "unscheduled";
@@ -270,7 +327,13 @@ export interface AnalyticsSummary {
 }
 
 // -- Human-in-the-loop approvals (v5) -----------------------------------------
-export type ApprovalType = "triage" | "verification" | "interaction";
+export type ApprovalType =
+  | "triage"
+  | "verification"
+  | "interaction"
+  | "safety_veto"
+  | "consensus_dispute"
+  | "lab_trajectory";
 export type ApprovalStatus = "pending" | "approved" | "rejected";
 
 export interface ApprovalOut {

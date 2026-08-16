@@ -46,12 +46,29 @@ _MAJOR_INTERACTION_SEVERITY = "major"
 def _decide_escalation(result: AgentRunResult) -> str | None:
     """Return a human-readable escalation reason, or None if nothing in
     this result warrants a human look."""
+    # Priority 1: Zero-tolerance Safety VETO
+    if result.consensus and result.consensus.safety_veto_triggered:
+        return f"Safety VETO Triggered: {result.consensus.veto_reason}"
+
+    # Priority 2: High/Critical Triage Risk
     if result.triage and result.triage.level in ("high", "critical"):
         return f"Triage classified this as {result.triage.level.upper()}: {'; '.join(result.triage.reasons)}"
 
+    # Priority 3: Multi-Agent Consensus Dispute (Divergence / Ambiguity)
+    if result.consensus and result.consensus.status.value == "disputed":
+        cand_name = result.consensus.primary_candidate.condition_name if result.consensus.primary_candidate else "candidates"
+        return f"Multi-Agent Consensus Disputed: Entropy {result.consensus.agreement_entropy:.2f} — Ambiguity on '{cand_name}'"
+
+    # Priority 4: Critical Lab Trajectory Alert
+    critical_trajectories = [tr for tr in result.lab_trajectories if tr.trend_direction in ("critical_drop", "critical_spike")]
+    if critical_trajectories:
+        return f"Critical Lab Trajectory Alert: {critical_trajectories[0].clinical_alert}"
+
+    # Priority 5: Hallucination / Unsupported Claim Verification
     if result.verification and not result.verification.supported:
         return f"Answer verification flagged unsupported claim(s): {'; '.join(result.verification.unsupported_claims)}"
 
+    # Priority 6: Major Drug Interaction
     major_interactions = [w for w in result.interaction_warnings if w.severity == _MAJOR_INTERACTION_SEVERITY]
     if major_interactions:
         names = ", ".join(f"{w.drug_a}+{w.drug_b}" for w in major_interactions)
@@ -81,14 +98,26 @@ def handle_request(
     logger.warning("Supervisor escalating patient %s: %s", patient_id, escalation_reason)
 
     if hasattr(repo, "create_approval"):
-        approval_type = "triage" if result.triage and result.triage.level in ("high", "critical") else (
-            "verification" if result.verification and not result.verification.supported else "interaction"
-        )
+        if result.consensus and result.consensus.safety_veto_triggered:
+            approval_type = "safety_veto"
+        elif result.consensus and result.consensus.status.value == "disputed":
+            approval_type = "consensus_dispute"
+        elif any(tr.trend_direction in ("critical_drop", "critical_spike") for tr in result.lab_trajectories):
+            approval_type = "lab_trajectory"
+        elif result.triage and result.triage.level in ("high", "critical"):
+            approval_type = "triage"
+        elif result.verification and not result.verification.supported:
+            approval_type = "verification"
+        else:
+            approval_type = "interaction"
+
         detail = {
             "user_request": user_request,
             "final_response": result.final_response,
             "triage": result.triage.model_dump() if result.triage else None,
             "verification": result.verification.model_dump() if result.verification else None,
+            "consensus": result.consensus.model_dump() if result.consensus else None,
+            "lab_trajectories": [tr.model_dump() for tr in result.lab_trajectories],
             "interaction_warnings": [w.model_dump() for w in result.interaction_warnings],
         }
         repo.create_approval(

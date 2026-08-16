@@ -15,6 +15,9 @@ const typeLabel: Record<ApprovalType, string> = {
   triage: "Risk triage",
   verification: "Unsupported answer",
   interaction: "Drug interaction",
+  safety_veto: "Safety veto",
+  consensus_dispute: "Consensus disputed",
+  lab_trajectory: "Critical lab trajectory",
 };
 
 /**

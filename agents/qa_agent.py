@@ -38,6 +38,18 @@ logger = get_logger(__name__)
 _HIGH_CONFIDENCE_THRESHOLD = 0.35
 _MEDIUM_CONFIDENCE_THRESHOLD = 0.12
 
+# Below this, retrieval found nothing meaningfully related to the
+# question — deterministic refusal instead of letting the LLM take a
+# guess (same "don't let the model decide" philosophy as triage_agent),
+# and consistent with the confidence tiers above: a score this low is
+# already reported as "low confidence," this just also declines to answer.
+_NO_ANSWER_MESSAGE = (
+    "I can only answer questions about your uploaded medical report(s). "
+    "I couldn't find anything in your records related to that question, "
+    "so I can't answer it — please ask something about your reports, "
+    "medicines, symptoms, or lab results instead."
+)
+
 
 def _confidence_from_score(top_score: float) -> str:
     if top_score >= _HIGH_CONFIDENCE_THRESHOLD:
@@ -132,11 +144,19 @@ def answer_question(
                     retrieved.append(chunk)
                     seen.add(chunk)
 
+    top_score = max(tfidf_top_score, semantic_top_score)
+    if top_score < _MEDIUM_CONFIDENCE_THRESHOLD:
+        logger.info(
+            "QA declined to answer %r — no relevant content found (tfidf=%.3f, semantic=%.3f)",
+            question, tfidf_top_score, semantic_top_score,
+        )
+        return QAResult(question=question, answer=_NO_ANSWER_MESSAGE, retrieved_chunks=[], confidence="low")
+
     history_block = _build_history_block(history)
     prompt = build_qa_prompt(retrieved, question, history_block=history_block)
     llm = get_llm_provider()
     answer = llm.complete(QA_SYSTEM_PROMPT, prompt, max_tokens=300)
-    confidence = _confidence_from_score(max(tfidf_top_score, semantic_top_score))
+    confidence = _confidence_from_score(top_score)
 
     logger.info(
         "QA answered via %s provider using %d retrieved chunk(s) (tfidf=%.3f, semantic=%.3f), "
